@@ -77,7 +77,8 @@
         three low-level areas: DSP and signal processing, GPU kernel programming, and embedded firmware.
         Each section has a definitions list, core-concept cards with tradeoffs and pitfalls, ASCII diagrams
         where a picture helps, further-reading links, and a bank of multiple-choice questions with
-        explanations. Difficulty runs from recall up to applied reasoning, in three formats: single-answer,
+        explanations. Difficulty runs from recall up to senior/principal-level scenario questions (tagged
+        "senior" — war-story debugging and design-tradeoff judgment), in three formats: single-answer,
         select-all-that-apply (the whole set must match), and click-the-steps-in-order design chains.
       </p>
     </section>
@@ -783,6 +784,52 @@ const quizData = {
         "Convert to frequency: f ≈ k × fs / N"
       ],
       explain: "The window is applied in the time domain, before the transform — windowing after the FFT is meaningless (it would be a convolution in frequency). Peak location comes from the magnitude (phase does not show tone energy), and the bin-to-hertz conversion is the fs/N resolution rule from the notes above."
+    },
+    {
+      hard: true,
+      q: "A 2nd-order IIR lowpass with 50 Hz cutoff at fs = 48 kHz is perfect in double precision, but the Q15 fixed-point port rings and slowly drifts around DC. What is the root cause?",
+      options: [
+        ["With fc/fs ≈ 0.001 the poles sit extremely close to z = 1, so 16-bit coefficient rounding moves them and tiny arithmetic errors recirculate as limit cycles", true],
+        ["Q15 cannot represent the negative coefficients of a Butterworth filter", false],
+        ["The accumulator overflows because Q15 cannot hold intermediate sums", false],
+        ["A Hann window must be applied to the coefficients before quantizing them", false]
+      ],
+      explain: "A cutoff at 1/1000 of the sample rate parks the poles at radius ~0.9935 within a whisker of z = 1, exactly where the Q15 coefficient grid is coarsest relative to the margin, and where quantization noise recirculates for thousands of samples (limit cycles, DC drift). Senior fixes attack the ratio, not the arithmetic: decimate first and filter at a lower rate, or use Q31 state variables / error-feedback biquad structures. The lesson: 'works in float, breaks in fixed point' is usually pole geometry, not overflow."
+    },
+    {
+      hard: true,
+      q: "A colleague inserts a magnitude-perfect 511-tap linear-phase FIR (fs = 10 kHz) to clean a noisy sensor that feeds a 200 Hz control loop. The loop promptly goes unstable. Why?",
+      options: [
+        ["Linear phase means a constant group delay of (N−1)/2 = 255 samples ≈ 25.5 ms — enormous extra phase lag at the loop crossover that erases the phase margin", true],
+        ["FIR filters become unstable above a few hundred taps", false],
+        ["The stopband ripple injects noise that saturates the actuator", false],
+        ["10 kHz sampling is below the Nyquist rate for a 200 Hz loop", false]
+      ],
+      explain: "Inside a feedback loop, a filter is part of the plant: 25.5 ms of delay is ~184 degrees of phase at 20 Hz — instant instability for a loop crossing anywhere near there. The exact property that makes linear-phase FIRs great for offline/streaming use (constant delay) is what kills them in-loop. Control paths want minimum latency: a low-order IIR or minimum-phase design, and the delay counted in the stability analysis. Filtering quality and loop stability trade against each other through delay."
+    },
+    {
+      hard: true,
+      q: "To separate two tones 2 Hz apart (fs = 1 kHz) you capture 0.1 s (N = 100) and zero-pad the FFT to 65,536 points. The plot is beautifully smooth, but the tones still merge into one peak. Why?",
+      options: [
+        ["Zero-padding only interpolates the spectrum of the same 0.1 s observation; resolving 2 Hz requires a longer capture (~0.5 s or more), because resolution is set by observation time, not FFT length", true],
+        ["65,536 is not an integer multiple of 100, which misaligns the bins", false],
+        ["Zero-padding adds spectral leakage that buries the weaker tone", false],
+        ["Close tones require a flat-top window, which was not applied", false]
+      ],
+      explain: "Zero-padding evaluates the same underlying spectrum on a finer grid — sinc interpolation of the display. The main-lobe width, which decides whether two tones are distinguishable, is fixed by the 0.1 s window: roughly 1/T = 10 Hz (worse with tapering). No amount of padding narrows it. The distinction between resolution (needs observation time) and interpolation (free) separates people who use FFTs from people who understand them — flat-top windows, incidentally, have the widest main lobe of all."
+    },
+    {
+      type: "multi",
+      hard: true,
+      q: "An audio feature-extraction pipeline is overloading a 168 MHz Cortex-M4F. Which redesigns are sound engineering?",
+      options: [
+        ["Decimate as early in the chain as possible so every later stage runs at the lowest adequate sample rate", true],
+        ["Process in blocks fed by circular-DMA double buffering instead of a per-sample interrupt", true],
+        ["Replace hand-rolled loops with CMSIS-DSP kernels that use the M4's SIMD/MAC instructions", true],
+        ["Switch the math to double precision for accuracy headroom", false],
+        ["Raise the sample rate to give the algorithms more data to work with", false]
+      ],
+      explain: "The multirate mantra is 'decimate early, interpolate late' — work done at 48 kHz that could happen at 8 kHz is a 6× tax on every downstream stage. Per-sample interrupts burn a large fixed overhead 48,000 times a second; block processing amortizes it. The double-precision option is a trap: the M4F's FPU is single-precision only, so doubles fall back to software emulation and get dramatically slower — a hardware detail a senior embedded-DSP engineer is expected to know."
     }
   ],
   gpu: [
@@ -1054,6 +1101,63 @@ const quizData = {
         "Re-profile — the bottleneck has moved"
       ],
       explain: "Measurement precedes tuning at every level: the timeline first (no kernel fix matters if PCIe dominates), then classification (each bound has different fixes — moving fewer bytes helps a memory-bound kernel but does nothing for a latency-bound one), and re-profiling last because removing one bottleneck promotes the next (Amdahl's law in practice)."
+    },
+    {
+      hard: true,
+      q: "You cap register usage with maxrregcount, lifting occupancy from 50% to 75% — and the kernel gets 20% SLOWER. What most likely happened?",
+      options: [
+        ["The compiler spilled the evicted values to local memory (DRAM-backed) and lost instruction-level parallelism — 50% occupancy was already hiding the latency, so the extra warps bought nothing and the spills cost plenty", true],
+        ["75% occupancy exceeds the warp scheduler's issue limit", false],
+        ["Higher occupancy triggers clock throttling", false],
+        ["maxrregcount disables the L1 cache", false]
+      ],
+      explain: "Occupancy is a means (enough warps to hide latency), not a score. Once latency is hidden, more warps add nothing — but the registers you confiscated were holding live values, which now spill to 'local' memory that physically lives in DRAM, adding real traffic; fewer registers also means fewer independent in-flight operations per thread. Nsight Compute makes the diagnosis explicit (local load/store transactions appear). The senior habit: measure the effect of occupancy changes, never assume more is better."
+    },
+    {
+      hard: true,
+      q: "A float sum-reduction using atomicAdd gives results that differ in the last bits between identical runs on the same GPU. Root cause?",
+      options: [
+        ["Floating-point addition is not associative, and atomics complete in nondeterministic order — different summation orders give different rounding", true],
+        ["atomicAdd occasionally drops an addend under heavy contention", false],
+        ["GPU FP32 units are not IEEE-754 compliant", false],
+        ["ECC memory corrects errors by rounding low-order bits", false]
+      ],
+      explain: "Every individual atomicAdd is correct and none are lost — but (a+b)+c ≠ a+(b+c) in floating point, and the hardware makes no ordering promise, so each run rounds differently. If the product needs bit-reproducibility (regression tests, scientific review, finance), replace the atomic accumulation with a fixed-order deterministic tree reduction. Distinguishing 'correct' from 'reproducible' — and knowing which one the requirement actually demands — is a principal-level conversation."
+    },
+    {
+      hard: true,
+      q: "A warp-level kernel that ran correctly for years on Pascal deadlocks intermittently on Volta and newer GPUs. It relies on all 32 lanes of a warp executing in lockstep, with no explicit synchronization. What changed?",
+      options: [
+        ["Volta introduced independent thread scheduling: lanes have their own program counters and no longer implicitly reconverge, so warp-synchronous code now needs __syncwarp() or cooperative groups", true],
+        ["Volta reduced the warp size from 32 to 16", false],
+        ["Shared memory stopped being coherent within a warp", false],
+        ["The compiler began reordering __syncthreads() calls", false]
+      ],
+      explain: "Pre-Volta hardware executed a warp on one shared program counter, so 'the other 31 lanes are exactly here too' happened to be true and a generation of unsynchronized warp-programming tricks worked. Volta gave each lane its own PC (enabling starvation-free algorithms), breaking that implicit contract — hence the _sync suffixed shuffle/vote intrinsics with explicit member masks. The general lesson: code relying on undocumented scheduling behavior is a time bomb that a hardware generation will eventually detonate."
+    },
+    {
+      hard: true,
+      q: "Every block of a kernel takes almost exactly the same time, and the GPU can run 64 blocks concurrently. Runtime is flat as the grid grows from 40 to 64 blocks — then nearly DOUBLES from 64 to 65. Why?",
+      options: [
+        ["Wave quantization: blocks run in waves of 64; the 65th block executes as an almost-empty second wave that takes as long as the full first one", true],
+        ["The 65th block overflows the register file and serializes the SMs", false],
+        ["Kernel launches have fixed overhead per 64 blocks", false],
+        ["The scheduler only handles power-of-two grid sizes efficiently", false]
+      ],
+      explain: "With uniform block durations, total time ≈ ceil(grid / blocks-per-wave) × wave time: 65 blocks = 2 waves, the second running one block while the rest of the GPU idles. This tail effect is invisible in per-block metrics and obvious on a timeline. Design responses: choose grid sizes near wave multiples, use grid-stride loops so a fixed-size grid processes any data size, or make blocks smaller so waves are finer-grained. It matters most for small grids and latency-critical inference-style workloads."
+    },
+    {
+      type: "multi",
+      hard: true,
+      q: "A senior review of a multi-stream CUDA pipeline. Which claims are TRUE?",
+      options: [
+        ["Two kernels in different streams may still run one-after-another if the first fills every SM — streams permit overlap, they do not force it", true],
+        ["Operations within a single stream always execute in the order they were issued", true],
+        ["Work issued to the legacy default stream synchronizes with other blocking streams and can silently serialize the whole pipeline", true],
+        ["cudaStreamSynchronize on one stream blocks all other streams", false],
+        ["CUDA events can only be used for timing, not for cross-stream dependencies", false]
+      ],
+      explain: "Streams are ordering contracts, not performance guarantees: overlap needs free resources. The legacy default stream is the classic silent serializer — a stray unstreamed cudaMemcpy fences everything (fixable with per-thread default streams or non-blocking stream flags). cudaStreamSynchronize blocks only the calling host thread on that one stream, and cudaEventRecord + cudaStreamWaitEvent is precisely how you build cross-stream dependency graphs. Misreading any of these turns a 'concurrent' pipeline into a sequential one that still looks correct."
     }
   ],
   embedded: [
@@ -1334,6 +1438,63 @@ const quizData = {
         "STOP condition"
       ],
       explain: "Register reads are two-phase: a write phase points the slave's internal register pointer, then a repeated START flips the bus to read mode without releasing it (a STOP in between would let another master grab the bus mid-transaction). The master NACKs the final byte so the slave releases SDA, making the STOP possible."
+    },
+    {
+      hard: true,
+      q: "Idle code does: enable_sensor_irq(); if (!data_ready) __WFI(); — and once in a blue moon the device sleeps forever even though the sensor fired. What is the bug?",
+      options: [
+        ["A lost-wakeup race: the interrupt fires between the flag check and WFI, the ISR consumes the event, and WFI then waits for an event that already happened. Fix: check the flag with interrupts disabled — on Cortex-M, WFI still wakes on a pended-but-masked interrupt", true],
+        ["WFI powers down the NVIC, so no interrupt can ever wake the core", false],
+        ["data_ready needs to be declared const so the compiler re-reads it", false],
+        ["The sensor interrupt's priority is too low to wake the core from sleep", false]
+      ],
+      explain: "The window between 'check' and 'sleep' is the whole bug: flag reads false, IRQ fires and is fully serviced, then WFI sleeps with nothing left to wake it. The canonical Cortex-M idle pattern closes it: __disable_irq(); if (!data_ready) __WFI(); __enable_irq(); — safe because WFI wakes when an interrupt is *pended*, even while PRIMASK masks it; the ISR then runs after re-enable. Wake-up is gated by pending state, not priority, and every RTOS idle hook does exactly this dance. One of the classic 'once a month in the field' firmware bugs."
+    },
+    {
+      hard: true,
+      q: "An RTOS design has three periodic tasks: motor control every 1 ms, sensor fusion every 10 ms, telemetry every 100 ms. How should fixed priorities be assigned, and on what principle?",
+      options: [
+        ["Shortest period gets highest priority (motor > fusion > telemetry) — rate-monotonic scheduling, which is optimal among fixed-priority schemes for periodic deadlines", true],
+        ["Longest period gets highest priority so the rare task is never starved", false],
+        ["Telemetry highest, because ground visibility is the most important business function", false],
+        ["All equal priority with round-robin time slicing for fairness", false]
+      ],
+      explain: "Rate-monotonic scheduling has a proof behind it: if any fixed-priority assignment can meet all the deadlines, rate-ordering can (Liu & Layland, with a ~69% utilization bound for guaranteed schedulability). The seductive wrong answer is 'importance': business importance and timing urgency are different axes — telemetry matters, but it has 100 ms of slack, while the motor loop has 1 ms. Prioritizing by importance instead of rate is how motors physically break while telemetry reports that everything is fine."
+    },
+    {
+      hard: true,
+      q: "A deep, rarely-taken call path in task A occasionally corrupts task B's variables. No HardFault, no watchdog reset, and the corruption pattern moves when you resize task stacks. Diagnosis and best mitigation?",
+      options: [
+        ["Task A overflows its stack into adjacent RAM (task B's stack or data). Mitigate with MPU-protected guard regions, RTOS stack high-water-mark checks, and worst-case stack analysis", true],
+        ["Cosmic-ray bit flips; specify ECC RAM on the next hardware revision", false],
+        ["A data race on shared variables; add a mutex around task B's data", false],
+        ["A compiler optimization bug; ship the release build at -O0", false]
+      ],
+      explain: "On an MCU without an MMU, a stack overflow just keeps writing into whatever RAM lies below — perfectly 'valid' memory, so there is no fault, only mystery corruption whose victim changes with the memory layout (the giveaway in the symptom). Defenses in production order: measure worst-case depth (high-water marks / static analysis), place an MPU guard region or the stack at the bottom of RAM so overflow faults loudly, and enable the RTOS overflow hooks in development. 'Moves when you change the layout' should trigger the stack-overflow reflex immediately."
+    },
+    {
+      hard: true,
+      q: "A 10 kHz control ISR sits at the highest NVIC priority, yet a timing pin shows rare 15 µs start-latency spikes. What should a senior engineer suspect FIRST?",
+      options: [
+        ["Code elsewhere disabling ALL interrupts for long stretches — e.g. a driver critical section or flash write with PRIMASK set; the highest NVIC priority cannot preempt masked interrupts", true],
+        ["The NVIC randomly reorders interrupts of different priorities", false],
+        ["The compiler inlined the ISR, making it slower to enter", false],
+        ["The debug probe adds latency while attached", false]
+      ],
+      explain: "NVIC priority only arbitrates among interrupts the core is allowed to take; a global critical section (PRIMASK) blocks even the highest. The usual offenders: an RTOS or driver critical section grown fat over time, or flash program/erase stalling execution. The audit: grep every __disable_irq()/ENTER_CRITICAL and bound their lengths, and switch the RTOS to BASEPRI-based masking (as FreeRTOS does) so priorities above the RTOS ceiling are never masked at all — that is exactly why 'max syscall priority' configuration exists. Then verify with the same timing pin that found the spike."
+    },
+    {
+      type: "multi",
+      hard: true,
+      q: "You are designing over-the-air (OTA) firmware update for devices already in the field. Which elements are essential for the update to be SAFE?",
+      options: [
+        ["A/B dual-slot layout: download into the inactive slot while the current firmware keeps running", true],
+        ["Verify the downloaded image (signature and integrity) before ever marking it bootable", true],
+        ["Boot the new image provisionally and mark it permanent only after it proves itself — with automatic watchdog-backed fallback to the old slot otherwise", true],
+        ["Erase the currently-running image first to make room for the download", false],
+        ["Skip image verification when the download link is TLS, since transport encryption already guarantees integrity", false]
+      ],
+      explain: "The design invariant is: power can fail at ANY instant and the device must still boot something. Erasing the running image violates it outright. TLS protects bytes in transit but not against truncated downloads, flash write errors, or a malicious server with valid TLS — the image itself must be signed and verified at rest. And a verified image can still brick the product functionally (boot loop, broken radio), which is what the provisional-boot + automatic-rollback state machine catches. Update mechanisms are judged by their worst day, not their best."
     }
   ]
 };
@@ -1388,7 +1549,9 @@ function renderQuestion(container, item, number, sectionKey) {
   if (item.type === "multi") return renderMulti(container, item, number, sectionKey);
   if (item.type === "order") return renderOrder(container, item, number, sectionKey);
   const card = el("article", "quiz-card");
-  card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
+  const qTitle = el("p", "q", `Q${number}. ${item.q}`);
+  if (item.hard) qTitle.appendChild(el("span", "qtype-tag", "senior"));
+  card.appendChild(qTitle);
   const optionsBox = el("div", "options");
   const explain = el("div", "explain");
   explain.appendChild(document.createTextNode(item.explain));
@@ -1424,6 +1587,7 @@ function renderMulti(container, item, number, sectionKey) {
   const card = el("article", "quiz-card");
   const title = el("p", "q", `Q${number}. ${item.q}`);
   title.appendChild(el("span", "qtype-tag", "select ALL that apply"));
+  if (item.hard) title.appendChild(el("span", "qtype-tag", "senior"));
   card.appendChild(title);
   const optionsBox = el("div", "options");
   const explain = el("div", "explain");
