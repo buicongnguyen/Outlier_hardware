@@ -39,6 +39,13 @@
     .verdict { font-weight:700; }
     .verdict.good { color:var(--accent-strong); }
     .verdict.bad { color:var(--warn); }
+    .options button.selected { border-color:var(--accent); background:var(--accent-soft); }
+    .options button .step-badge { display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; margin-right:9px; border-radius:999px; background:var(--accent); color:#ffffff; font-size:12px; font-weight:700; flex:none; }
+    .options button.step-btn { display:flex; align-items:flex-start; }
+    .check-btn { margin-top:10px; min-height:36px; border:1px solid var(--accent); border-radius:6px; padding:6px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
+    .check-btn:hover:enabled { background:var(--accent-strong); border-color:var(--accent-strong); }
+    .check-btn:disabled { opacity:0.5; cursor:default; }
+    .qtype-tag { display:inline-block; margin-left:8px; padding:2px 9px; border-radius:999px; background:var(--warn-soft); color:var(--warn); font-size:11px; font-weight:700; vertical-align:2px; white-space:nowrap; }
     .bar-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .bar-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
     .bar-btn.secondary { background:var(--panel); color:var(--text); border-color:var(--line); }
@@ -70,7 +77,8 @@
         three low-level areas: DSP and signal processing, GPU kernel programming, and embedded firmware.
         Each section has a definitions list, core-concept cards with tradeoffs and pitfalls, ASCII diagrams
         where a picture helps, further-reading links, and a bank of multiple-choice questions with
-        explanations. Difficulty runs from recall up to applied reasoning.
+        explanations. Difficulty runs from recall up to applied reasoning, in three formats: single-answer,
+        select-all-that-apply (the whole set must match), and click-the-steps-in-order design chains.
       </p>
     </section>
 
@@ -727,6 +735,54 @@ const quizData = {
         ["Apply a Hann window to the whole signal", false]
       ],
       explain: "Decimation lowers the Nyquist limit to the new fs/2 = 6 kHz. Any content between 6 and 24 kHz would alias into the retained band when samples are dropped, so it must be filtered out first. Filter-then-downsample is the definition of proper decimation; skipping the filter is a classic bug that shows up as phantom low-frequency tones."
+    },
+    {
+      type: "multi",
+      q: "A vibration monitor shows a phantom low-frequency tone that is really an aliased high-frequency component. Which design changes actually prevent the aliasing?",
+      options: [
+        ["Add an analog lowpass filter in front of the ADC", true],
+        ["Raise the sample rate so fs exceeds twice the highest input frequency", true],
+        ["Add a digital lowpass filter right after the ADC", false],
+        ["Apply a Hann window before the FFT", false],
+        ["Use a higher-resolution (more bits) ADC", false]
+      ],
+      explain: "Aliasing happens at the instant of sampling, so only measures that act before or at sampling help: filter the analog signal, or sample fast enough that the content is below Nyquist (usually you do both). A digital filter afterwards cannot separate an alias from a real tone at the same frequency; windowing fixes leakage, not aliasing; and more bits fix quantization noise — a different problem entirely."
+    },
+    {
+      type: "multi",
+      q: "You are designing the receive filter for a data link: pulse shape must be preserved (no phase distortion) and the filter must be unconditionally stable in 16-bit fixed point. Which design choices fit these requirements?",
+      options: [
+        ["An FIR structure — no feedback path", true],
+        ["Coefficients symmetric about the center tap", true],
+        ["An IIR design with poles placed close to the unit circle for sharpness", false],
+        ["Minimizing coefficient count by using feedback", false],
+        ["Skipping the anti-aliasing filter to reduce group delay", false]
+      ],
+      explain: "The two requirements map directly to two FIR properties: no feedback means no poles that coefficient quantization can push outside the unit circle (unconditional stability), and symmetric taps give exactly linear phase (all frequencies delayed equally, so pulse shapes survive). IIR feedback breaks both guarantees — poles near the unit circle are precisely the ones that go unstable when rounded to 16 bits."
+    },
+    {
+      type: "order",
+      q: "Arrange the complete audio processing chain, from microphone to speaker, in the correct signal-flow order.",
+      steps: [
+        "Analog anti-aliasing lowpass filter",
+        "Sample at fs and quantize to N bits (ADC)",
+        "Digital processing: filters, effects, FFT analysis",
+        "Convert back to analog (DAC)",
+        "Analog reconstruction (smoothing) filter"
+      ],
+      explain: "This is the canonical DSP system chain. The anti-aliasing filter must precede the ADC (aliasing is unrecoverable after sampling), all the flexible work happens in the digital middle, and the reconstruction filter after the DAC removes the staircase images above fs/2 — the mirror-image job of the anti-aliasing filter at the input."
+    },
+    {
+      type: "order",
+      q: "You must measure the frequency of an unknown tone with an FFT. Put the processing steps in the right order.",
+      steps: [
+        "Acquire a block of N samples at a known sample rate fs",
+        "Multiply the block by a window function (e.g. Hann)",
+        "Compute the FFT of the windowed block",
+        "Take the magnitude spectrum and locate the peak bin k",
+        "Convert to frequency: f ≈ k × fs / N"
+      ],
+      explain: "The window is applied in the time domain, before the transform — windowing after the FFT is meaningless (it would be a convolution in frequency). Peak location comes from the magnitude (phase does not show tone energy), and the bin-to-hertz conversion is the fs/N resolution rule from the notes above."
     }
   ],
   gpu: [
@@ -949,6 +1005,55 @@ const quizData = {
         ["Nothing — bandwidth cannot be computed from these numbers", false]
       ],
       explain: "Effective bandwidth = (400 + 400) MB / 10 ms = 80 GB/s, i.e. 10% of the 800 GB/s roof. A well-coalesced memory-bound kernel typically reaches 70–90% of peak, so this one has a pathology: strided/uncoalesced access, low occupancy, or divergence. This two-line calculation is the fastest sanity check in GPU performance work."
+    },
+    {
+      type: "multi",
+      q: "Profiling proves a kernel is memory-bound: it already achieves ~85% of peak DRAM bandwidth. Which design changes can still make it faster?",
+      options: [
+        ["Fuse it with the adjacent elementwise kernels so the data is read and written once instead of several times", true],
+        ["Change the data layout from array-of-structures to structure-of-arrays", false],
+        ["Store the data as FP16 instead of FP32 where precision allows — half the bytes", true],
+        ["Tile data that is reused by the block into shared memory", true],
+        ["Increase the block size from 256 to 1024 threads", false]
+      ],
+      explain: "At 85% of peak, the access pattern is already efficient — AoS→SoA and bigger blocks improve how bytes are fetched, not how many. The only remaining lever is moving fewer bytes: fusion removes whole read/write passes, FP16 halves the traffic, and shared-memory tiling converts repeated DRAM reads into one. (If the kernel were at 15% of peak, layout fixes would be the right answer instead — the measurement decides the fix.)"
+    },
+    {
+      type: "multi",
+      q: "You want batch k+1 to upload over PCIe while the GPU computes batch k. Which pieces are required for the overlap to actually happen?",
+      options: [
+        ["Pinned (page-locked) host buffers", true],
+        ["cudaMemcpyAsync instead of blocking cudaMemcpy", true],
+        ["At least two non-default CUDA streams", true],
+        ["A __syncthreads() barrier after each copy", false],
+        ["Doubling the kernel's grid size", false]
+      ],
+      explain: "Overlap needs all three: async copies from pinned memory (pageable memory silently degrades to staged, synchronous-ish copies), and separate streams so the copy and the kernel are not ordered behind each other — everything on one stream serializes. __syncthreads() is a device-side block barrier, unrelated to transfers, and grid size does not affect copy/compute concurrency."
+    },
+    {
+      type: "order",
+      q: "Arrange the host-side steps of a minimal CUDA program in execution order.",
+      steps: [
+        "cudaMalloc the device buffers",
+        "cudaMemcpy the inputs host → device",
+        "Launch the kernel with <<<grid, block>>>",
+        "cudaMemcpy the results device → host",
+        "cudaFree the device buffers"
+      ],
+      explain: "This is the five-step rhythm from the SAXPY walkthrough: allocate, copy in, launch, copy out, free. The subtle detail is that step 3 is asynchronous — it is the device-to-host copy in step 4 that waits for the kernel to finish, which is why reading results before it yields garbage."
+    },
+    {
+      type: "order",
+      q: "Put the GPU performance-tuning workflow in the order that avoids wasted effort.",
+      steps: [
+        "Profile the whole application timeline (Nsight Systems)",
+        "Attribute the wall time: copies vs kernels vs CPU gaps",
+        "Deep-profile the dominant kernel (Nsight Compute)",
+        "Classify it: memory-, compute-, or latency-bound",
+        "Apply the design fix that matches the classification",
+        "Re-profile — the bottleneck has moved"
+      ],
+      explain: "Measurement precedes tuning at every level: the timeline first (no kernel fix matters if PCIe dominates), then classification (each bound has different fixes — moving fewer bytes helps a memory-bound kernel but does nothing for a latency-bound one), and re-profiling last because removing one bottleneck promotes the next (Amdahl's law in practice)."
     }
   ],
   embedded: [
@@ -1181,6 +1286,54 @@ const quizData = {
         ["The wake-up transition, which uses more than both combined", false]
       ],
       explain: "Duty-cycle math: the awake term contributes 0.02 × 8 mA = 160 µA versus 2 µA from sleep — 80× more, even though the node is awake only 2% of the time. So the design lever is shrinking awake time (faster code, DMA, quicker radio handshake) or waking less often; polishing sleep current from 2 µA to 1 µA is nearly invisible. Always do this arithmetic before optimizing."
+    },
+    {
+      type: "multi",
+      q: "A UART-receive interrupt fires once per byte. Which actions belong INSIDE the ISR in a well-designed firmware?",
+      options: [
+        ["Read the byte out of the peripheral's data register", true],
+        ["Clear / acknowledge the interrupt flag", true],
+        ["Push the byte into a queue or ring buffer for later processing", true],
+        ["Parse the complete message and act on it", false],
+        ["printf a log line noting the byte arrived", false]
+      ],
+      explain: "The ISR does exactly the work that cannot wait: drain the hardware (or the byte is lost on the next arrival), acknowledge the source (or the ISR re-enters forever), and hand the data off. Parsing is deferred to the main loop or a woken task because ISR time blocks everything at or below its priority, and printf is slow, often non-reentrant, and the classic way to break real-time behavior."
+    },
+    {
+      type: "multi",
+      q: "A coin-cell sensor node must run for a year. Which design choices fit that power budget?",
+      options: [
+        ["Sleep in a deep low-power mode and wake on RTC or pin interrupts", true],
+        ["Let DMA and peripherals collect sensor data while the CPU stays asleep", true],
+        ["Use the RTOS tickless-idle mode so the system tick stops during sleep", true],
+        ["Poll the sensors continuously in a tight loop at full clock speed", false],
+        ["Keep verbose UART debug logging enabled at all times in production", false]
+      ],
+      explain: "Battery life is a duty-cycle design: everything that lets the CPU stay asleep longer helps — interrupt-driven wakeups, autonomous peripherals + DMA, and tickless idle (otherwise a 1 kHz tick wakes the chip a thousand times a second). Polling at full clock is the exact opposite of the architecture, and always-on logging burns power in the UART, the CPU, and the awake time it adds."
+    },
+    {
+      type: "order",
+      q: "Arrange what happens on a Cortex-M microcontroller from reset to running application, in order.",
+      steps: [
+        "Core fetches the initial stack pointer and reset-handler address from the vector table",
+        "Startup code runs: clocks/PLL configured, .data copied from flash to RAM, .bss zeroed",
+        "main() begins and configures peripherals: GPIO, UART, timers",
+        "Interrupts are enabled",
+        "Firmware enters the superloop or starts the RTOS scheduler"
+      ],
+      explain: "The vector table read is pure hardware — before any of your code runs, the core needs a stack and an entry point. C code cannot rely on initialized globals until .data/.bss are set up, which is why that lives in the startup code before main(). Enabling interrupts before the peripherals they service are configured is a classic bring-up bug — an IRQ can fire into a half-initialized driver."
+    },
+    {
+      type: "order",
+      q: "Put the I2C bus events in the correct order for reading one register from a sensor (master side).",
+      steps: [
+        "START condition + slave address with the W bit",
+        "Send the register address byte (slave ACKs)",
+        "Repeated START + slave address with the R bit",
+        "Read the data byte and NACK it (last byte)",
+        "STOP condition"
+      ],
+      explain: "Register reads are two-phase: a write phase points the slave's internal register pointer, then a repeated START flips the bus to read mode without releasing it (a STOP in between would let another master grab the bus mid-transaction). The master NACKs the final byte so the slave releases SDA, making the STOP possible."
     }
   ]
 };
@@ -1232,6 +1385,8 @@ function updateScore() {
 }
 
 function renderQuestion(container, item, number, sectionKey) {
+  if (item.type === "multi") return renderMulti(container, item, number, sectionKey);
+  if (item.type === "order") return renderOrder(container, item, number, sectionKey);
   const card = el("article", "quiz-card");
   card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
   const optionsBox = el("div", "options");
@@ -1261,6 +1416,116 @@ function renderQuestion(container, item, number, sectionKey) {
   }
 
   card.appendChild(optionsBox);
+  card.appendChild(explain);
+  container.appendChild(card);
+}
+
+function renderMulti(container, item, number, sectionKey) {
+  const card = el("article", "quiz-card");
+  const title = el("p", "q", `Q${number}. ${item.q}`);
+  title.appendChild(el("span", "qtype-tag", "select ALL that apply"));
+  card.appendChild(title);
+  const optionsBox = el("div", "options");
+  const explain = el("div", "explain");
+  explain.appendChild(document.createTextNode(item.explain));
+
+  const buttons = [];
+  for (const [text, isCorrect] of shuffle(item.options)) {
+    const btn = el("button", "", text);
+    btn.type = "button";
+    btn.dataset.correct = isCorrect ? "1" : "0";
+    btn.addEventListener("click", () => btn.classList.toggle("selected"));
+    buttons.push(btn);
+    optionsBox.appendChild(btn);
+  }
+
+  const check = el("button", "check-btn", "Check answer");
+  check.type = "button";
+  check.addEventListener("click", () => {
+    state[sectionKey].answered += 1;
+    let ok = true;
+    for (const b of buttons) {
+      const good = b.dataset.correct === "1";
+      const picked = b.classList.contains("selected");
+      if (good !== picked) ok = false;
+      b.disabled = true;
+      if (good) b.classList.add("correct");
+      else if (picked) b.classList.add("incorrect");
+    }
+    if (ok) state[sectionKey].correct += 1;
+    check.disabled = true;
+    const verdict = el("span", "verdict " + (ok ? "good" : "bad"),
+      ok ? "Correct — exact set matched. " : "Incorrect — the full correct set is highlighted green. ");
+    explain.insertBefore(verdict, explain.firstChild);
+    explain.classList.add("show");
+    updateScore();
+  });
+
+  card.appendChild(optionsBox);
+  card.appendChild(check);
+  card.appendChild(explain);
+  container.appendChild(card);
+}
+
+function renderOrder(container, item, number, sectionKey) {
+  const card = el("article", "quiz-card");
+  const title = el("p", "q", `Q${number}. ${item.q}`);
+  title.appendChild(el("span", "qtype-tag", "click the steps in order"));
+  card.appendChild(title);
+  const optionsBox = el("div", "options");
+  const explain = el("div", "explain");
+  explain.appendChild(document.createTextNode(
+    item.explain + " Correct order: " + item.steps.map((s, i) => `(${i + 1}) ${s}`).join(" → ") + "."));
+
+  const seq = [];
+  const check = el("button", "check-btn", "Check order");
+  check.type = "button";
+  check.disabled = true;
+
+  const buttons = shuffle(item.steps.map((text, idx) => ({ text, idx }))).map(step => {
+    const btn = el("button", "step-btn");
+    btn.type = "button";
+    const badge = el("span", "step-badge", "");
+    badge.style.visibility = "hidden";
+    btn.appendChild(badge);
+    btn.appendChild(el("span", "", step.text));
+    btn.dataset.idx = String(step.idx);
+    btn.addEventListener("click", () => {
+      const pos = seq.indexOf(btn);
+      if (pos >= 0) seq.splice(pos, 1); else seq.push(btn);
+      for (const b of buttons) {
+        const p = seq.indexOf(b);
+        const bd = b.querySelector(".step-badge");
+        bd.textContent = p >= 0 ? String(p + 1) : "";
+        bd.style.visibility = p >= 0 ? "visible" : "hidden";
+        b.classList.toggle("selected", p >= 0);
+      }
+      check.disabled = seq.length !== buttons.length;
+    });
+    optionsBox.appendChild(btn);
+    return btn;
+  });
+
+  check.addEventListener("click", () => {
+    state[sectionKey].answered += 1;
+    let ok = true;
+    seq.forEach((btn, pos) => {
+      const right = Number(btn.dataset.idx) === pos;
+      if (!right) ok = false;
+      btn.classList.add(right ? "correct" : "incorrect");
+    });
+    for (const b of buttons) b.disabled = true;
+    if (ok) state[sectionKey].correct += 1;
+    check.disabled = true;
+    const verdict = el("span", "verdict " + (ok ? "good" : "bad"),
+      ok ? "Correct sequence. " : "Wrong sequence — green steps were in the right position, amber ones were not. ");
+    explain.insertBefore(verdict, explain.firstChild);
+    explain.classList.add("show");
+    updateScore();
+  });
+
+  card.appendChild(optionsBox);
+  card.appendChild(check);
   card.appendChild(explain);
   container.appendChild(card);
 }
