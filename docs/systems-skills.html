@@ -1,0 +1,1292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Revision notes and multiple-choice practice for DSP and signal processing, GPU kernels, and embedded firmware engineering.">
+  <title>Systems &amp; Hardware Skills Revision and MCQ Practice</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .sub { margin-top: 24px; }
+    .term-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+    .term-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:14px; }
+    .term-card h3 { margin-bottom:6px; color:var(--accent-strong); }
+    .term-card p { color:var(--muted); margin-bottom:0; }
+    .def-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:0 22px; margin:0; padding:8px 18px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .def-list > div { padding:9px 0; border-bottom:1px solid var(--line); }
+    .def-list dt { font-weight:700; color:var(--accent-strong); }
+    .def-list dd { margin:2px 0 0; color:var(--muted); }
+    .diagram { margin:14px 0 0; padding:14px 16px; overflow-x:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.45; color:var(--text); }
+    .diagram-title { margin:16px 0 0; font-size:13px; font-weight:700; color:var(--accent-strong); text-transform:uppercase; }
+    .score-bar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:18px 0; padding:12px 15px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .score-bar strong { font-size:17px; }
+    .score-bar .section-note { margin:0; flex:1 1 260px; }
+    .score-bar .bar-buttons { display:flex; gap:8px; margin-left:auto; }
+    .sec-score { display:inline-flex; align-items:center; min-height:30px; margin:14px 0 0; padding:4px 12px; border:1px solid var(--accent); border-radius:999px; background:var(--accent-soft); color:var(--accent-strong); font-size:13px; font-weight:700; }
+    .quiz { margin-top:12px; }
+    .quiz-card { margin:10px 0; padding:14px 15px; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .quiz-card p.q { margin-bottom:10px; font-weight:700; }
+    .options { display:grid; gap:8px; }
+    .options button { min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-size:15px; text-align:left; cursor:pointer; }
+    .options button:hover:enabled { border-color:var(--accent); background:var(--accent-soft); }
+    .options button:disabled { cursor:default; opacity:0.85; }
+    .options button.correct { border-color:var(--accent-strong); background:var(--accent-soft); color:var(--accent-strong); font-weight:700; opacity:1; }
+    .options button.incorrect { border-color:var(--warn); background:var(--warn-soft); color:var(--warn); font-weight:700; opacity:1; }
+    .explain { display:none; margin:10px 0 0; padding:10px 12px; border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 6px 6px 0; color:var(--text); }
+    .explain.show { display:block; }
+    .show-all .explain { display:block; }
+    .show-all .options button[data-correct="1"] { border-color:var(--accent-strong); background:var(--accent-soft); color:var(--accent-strong); font-weight:700; }
+    .verdict { font-weight:700; }
+    .verdict.good { color:var(--accent-strong); }
+    .verdict.bad { color:var(--warn); }
+    .bar-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
+    .bar-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
+    .bar-btn.secondary { background:var(--panel); color:var(--text); border-color:var(--line); }
+    .bar-btn.secondary:hover { border-color:var(--accent); color:var(--accent-strong); background:var(--accent-soft); }
+    .source-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+    .source-grid article { padding:14px; margin-bottom:0; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Systems &amp; hardware study hub</p>
+      <h1>Systems &amp; Hardware Skills Revision and MCQ Practice</h1>
+    </div>
+    <nav aria-label="Site navigation">
+      <a href="index.html">Hub</a>
+      <a href="#dsp">DSP</a>
+      <a href="#gpu">GPU Kernels</a>
+      <a href="#embedded">Embedded</a>
+      <a href="#resources">Resources</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="section intro">
+      <h2>Study Goal</h2>
+      <p>
+        Revision notes and practice questions for software/hardware-engineering assessment work, covering
+        three low-level areas: DSP and signal processing, GPU kernel programming, and embedded firmware.
+        Each section has a definitions list, core-concept cards with tradeoffs and pitfalls, ASCII diagrams
+        where a picture helps, further-reading links, and a bank of multiple-choice questions with
+        explanations. Difficulty runs from recall up to applied reasoning.
+      </p>
+    </section>
+
+    <div class="score-bar" id="score-bar">
+      <strong id="score-text">Score: 0 / 0</strong>
+      <p class="section-note" id="score-note"></p>
+      <div class="bar-buttons">
+        <button class="bar-btn secondary" id="toggle-explain" type="button">Show all explanations</button>
+        <button class="bar-btn" id="retry" type="button">Retry (reshuffle)</button>
+      </div>
+    </div>
+
+    <!-- ================= 1. DSP & SIGNAL PROCESSING ================= -->
+    <section id="dsp" class="section">
+      <h2>1. DSP &amp; Signal Processing</h2>
+      <p class="section-note">
+        Turning continuous signals into numbers and back without lying about them: sampling, quantization,
+        filtering, and frequency analysis. Used everywhere a sensor, microphone, or radio meets software —
+        audio processing, communications, and sensor filtering.
+      </p>
+
+      <h3 class="sub">Key terms</h3>
+      <dl class="def-list">
+        <div><dt>Sampling</dt><dd>Measuring a continuous signal at regular intervals (the sample rate f<sub>s</sub>), turning it into a discrete sequence x[n].</dd></div>
+        <div><dt>Nyquist rate / frequency</dt><dd>To represent a signal with maximum frequency f<sub>max</sub> you must sample at f<sub>s</sub> &gt; 2·f<sub>max</sub>. The Nyquist frequency f<sub>s</sub>/2 is the highest frequency the sampled system can represent.</dd></div>
+        <div><dt>Aliasing</dt><dd>When content above f<sub>s</sub>/2 is sampled, it folds back and masquerades as a lower frequency. Once aliased, it is indistinguishable from a real low-frequency component — unrecoverable.</dd></div>
+        <div><dt>Anti-aliasing filter</dt><dd>An analog lowpass filter placed before the ADC to remove content above f<sub>s</sub>/2. It must be analog: digital filtering after sampling is too late.</dd></div>
+        <div><dt>Quantization</dt><dd>Rounding each sample to one of 2<sup>N</sup> levels for an N-bit converter. The rounding error behaves like noise; each extra bit adds ≈6.02 dB of SNR (≈6.02·N + 1.76 dB for a full-scale sine).</dd></div>
+        <div><dt>Convolution</dt><dd>y[n] = Σ h[k]·x[n−k]: sliding the (flipped) impulse response over the input. Any LTI system's output is its input convolved with its impulse response. Convolution in time equals multiplication in frequency.</dd></div>
+        <div><dt>Impulse response h[n]</dt><dd>A system's output when fed a single unit impulse. It fully characterizes an LTI system.</dd></div>
+        <div><dt>FIR filter</dt><dd>Finite Impulse Response: output depends only on current and past inputs (no feedback). Always stable, and can have exactly linear phase if the coefficients are symmetric.</dd></div>
+        <div><dt>IIR filter</dt><dd>Infinite Impulse Response: uses feedback from past outputs. Far fewer coefficients for a sharp response, but can go unstable and has nonlinear phase.</dd></div>
+        <div><dt>DFT / FFT</dt><dd>The Discrete Fourier Transform maps N time samples to N frequency bins. The FFT is a fast algorithm for the same result: O(N log N) instead of O(N²).</dd></div>
+        <div><dt>Frequency bin</dt><dd>One output of an N-point DFT. Bin spacing (frequency resolution) is f<sub>s</sub>/N — longer captures resolve finer frequency detail.</dd></div>
+        <div><dt>Windowing</dt><dd>Multiplying a signal block by a taper (Hann, Hamming, Blackman) that goes to zero at the edges before taking the FFT, to reduce spectral leakage.</dd></div>
+        <div><dt>Spectral leakage</dt><dd>When a block does not contain a whole number of periods, the implied edge discontinuity smears a tone's energy across many bins.</dd></div>
+        <div><dt>Z-transform</dt><dd>The discrete-time analogue of the Laplace transform. z<sup>−1</sup> is a one-sample delay; a filter's transfer function H(z) is a ratio of polynomials whose roots are its zeros and poles.</dd></div>
+        <div><dt>Poles and zeros</dt><dd>Roots of the transfer function's denominator and numerator. A causal filter is stable only if every pole lies strictly inside the unit circle.</dd></div>
+        <div><dt>Fixed-point arithmetic</dt><dd>Integers with an implied scale (e.g. Q15: 16-bit values representing [−1, 1−2<sup>−15</sup>]). Cheap and deterministic, but you manage range, overflow, and precision yourself.</dd></div>
+        <div><dt>Floating-point arithmetic</dt><dd>Sign/exponent/mantissa format with huge dynamic range and automatic scaling, at higher hardware cost. Standard on DSPs/CPUs with FPUs; fixed-point still rules cheap MCUs and dedicated hardware.</dd></div>
+        <div><dt>Decimation / interpolation</dt><dd>Reducing or raising the sample rate. Decimation by M requires lowpass filtering first, or content above the new Nyquist limit aliases.</dd></div>
+      </dl>
+
+      <h3 class="sub">Core concepts</h3>
+      <div class="term-grid">
+        <article class="term-card"><h3>Sampling and the Nyquist limit</h3><p>Sampling is only lossless if nothing above f<sub>s</sub>/2 reaches the ADC. That is why every real acquisition chain starts with an analog anti-aliasing filter, and why audio CDs use 44.1 kHz for a ~20 kHz bandwidth. A component at frequency f &gt; f<sub>s</sub>/2 appears at the alias frequency |f − k·f<sub>s</sub>| — e.g. 7 kHz sampled at 10 kHz shows up as 3 kHz. Pitfall: no amount of post-processing can undo aliasing; the information is gone.</p></article>
+        <article class="term-card"><h3>Quantization and bit depth</h3><p>An N-bit ADC gives roughly 6.02·N + 1.76 dB SNR for a full-scale sine (16-bit ≈ 98 dB, 12-bit ≈ 74 dB). Headroom is a tradeoff: signals near full scale maximize SNR but risk clipping, which creates harsh harmonic distortion — far worse than quantization noise. Dither (tiny added noise) decorrelates quantization error from the signal at low levels.</p></article>
+        <article class="term-card"><h3>FIR vs IIR tradeoffs</h3><p>FIR: no feedback, unconditionally stable, exactly linear phase with symmetric taps (all frequencies delayed equally — critical for data/comm pulses and audio crossovers), but sharp filters need many taps. IIR: feedback gives sharp responses with few coefficients (a biquad has 5), but phase is nonlinear and poles can drift outside the unit circle when coefficients are quantized. High-order IIR filters are built as cascaded biquads precisely to limit that sensitivity.</p></article>
+        <article class="term-card"><h3>FFT, resolution, and windowing</h3><p>An N-point FFT at sample rate f<sub>s</sub> gives bins f<sub>s</sub>/N apart — resolution costs observation time. A tone that does not land exactly on a bin leaks into neighbors; windows trade a wider main lobe (worse resolution) for much lower sidelobes (less leakage). Rectangular = best resolution, worst leakage; Hann/Hamming are the everyday compromise; Blackman when you need to see a weak tone next to a strong one.</p></article>
+        <article class="term-card"><h3>Z-transform and stability</h3><p>Design and analysis happen in the z-domain: H(z) = B(z)/A(z), where zeros shape notches and poles shape resonances. Stability test: all poles inside the unit circle. Poles close to the circle mean high gain, long ringing, and high sensitivity to coefficient rounding — the classic way a filter that worked in double precision blows up in 16-bit fixed point.</p></article>
+        <article class="term-card"><h3>Fixed-point in practice</h3><p>Q-format numbers (Q15, Q31) make multiplies cheap but every sum can overflow. Rules of thumb: keep track of worst-case gain through the pipeline, use guard bits in accumulators (e.g. 40-bit MACs), and saturate instead of wrapping — a wrapped overflow jumps from +max to −max, which in audio is a loud click and in a control loop can command a violent actuator reversal.</p></article>
+      </div>
+
+      <p class="diagram-title">Sampling vs aliasing — 7 kHz sampled at 10 kHz</p>
+      <pre class="diagram">fs = 10 kHz  =&gt;  Nyquist limit fs/2 = 5 kHz.   Input at 7 kHz is above the limit.
+
+  true 7 kHz signal, * = sample instants (every 0.1 ms)
+
+    /\      /\      /\      /\      /\
+   /  \    /  \    /  \    /  \    /       a slower 3 kHz sine passes through
+  *    \  /    *  /    \  *    \  /        exactly the same * points
+ /      \/      \/      \/      \/
+ ─────────────────────────────────── t
+
+  frequency axis after sampling (spectrum folds at fs/2):
+
+  0 ──────────────── 5 kHz ──────────────── 10 kHz
+            ▲                     │
+        3 kHz alias  &lt;── folds ── 7 kHz input      alias = |fs − f| = |10 − 7| = 3 kHz</pre>
+
+      <p class="diagram-title">FIR filter — tapped delay line (direct form)</p>
+      <pre class="diagram">x[n] ──┬──[z^-1]──┬──[z^-1]──┬──[z^-1]──┐
+       │          │          │          │
+     (×h0)      (×h1)      (×h2)      (×h3)         no feedback path
+       │          │          │          │           =&gt; always stable
+       └───(+)────┴───(+)────┴───(+)────┘
+                       │
+                       ▼
+   y[n] = h0·x[n] + h1·x[n−1] + h2·x[n−2] + h3·x[n−3]
+
+symmetric taps (h0 = h3, h1 = h2)  =&gt;  exactly linear phase,
+constant group delay of (N−1)/2 samples</pre>
+
+      <p class="diagram-title">FFT — radix-2 butterfly and why it is fast</p>
+      <pre class="diagram">one butterfly (2-point DFT):            full N-point FFT:
+
+  a ────●─────────●──── A = a + W·b       log2(N) stages,
+         \       /                        N/2 butterflies per stage
+          \     /
+           ╲   ╱                          N = 8:  3 stages × 4 butterflies
+            ╲ ╱                                   = 12 butterflies
+             ╳          W = twiddle
+            ╱ ╲             factor       cost:  (N/2)·log2(N) multiplies
+           ╱   ╲                         direct DFT:  N² multiplies
+          /     \
+  b ────●─────────●──── B = a − W·b      N = 1024:  ~5k vs ~1M  (≈200× less)</pre>
+
+      <div class="link-list">
+        <a href="https://www.dspguide.com/" target="_blank" rel="noopener">The Scientist &amp; Engineer's Guide to DSP (free book)</a>
+        <a href="https://ccrma.stanford.edu/~jos/mdft/" target="_blank" rel="noopener">Mathematics of the DFT — J. O. Smith</a>
+        <a href="https://ccrma.stanford.edu/~jos/filters/" target="_blank" rel="noopener">Introduction to Digital Filters — J. O. Smith</a>
+        <a href="https://en.wikipedia.org/wiki/Nyquist%E2%80%93Shannon_sampling_theorem" target="_blank" rel="noopener">Nyquist–Shannon sampling theorem</a>
+      </div>
+
+      <h3 class="sub">Practice questions</h3>
+      <span class="sec-score" id="sec-score-dsp">Section score: 0 / 0</span>
+      <div class="quiz" data-section="dsp"></div>
+    </section>
+
+    <!-- ================= 2. GPU KERNELS ================= -->
+    <section id="gpu" class="section">
+      <h2>2. GPU Kernels</h2>
+      <p class="section-note">
+        Writing code for thousands of threads at once: the SIMT execution model, the memory hierarchy,
+        and the throughput mindset. Vocabulary below is CUDA's; OpenCL/HIP concepts map one-to-one
+        (warp ≈ wavefront, shared memory ≈ local memory, block ≈ work-group).
+      </p>
+
+      <h3 class="sub">Key terms</h3>
+      <dl class="def-list">
+        <div><dt>Kernel</dt><dd>A function launched from the host that runs on the device, executed by every thread in the launch grid.</dd></div>
+        <div><dt>SIMT</dt><dd>Single Instruction, Multiple Threads: groups of threads execute the same instruction in lockstep on different data. Each thread has its own registers and can branch — at a cost.</dd></div>
+        <div><dt>Thread</dt><dd>The smallest unit of execution. Identified inside a kernel by its thread and block indices, from which it computes which data element it owns.</dd></div>
+        <div><dt>Warp</dt><dd>A fixed group of 32 threads scheduled together. The hardware issues instructions per warp, not per thread.</dd></div>
+        <div><dt>Thread block</dt><dd>A group of up to 1024 threads that runs on one SM, shares shared memory, and can synchronize with a barrier. Blocks must be independent of each other.</dd></div>
+        <div><dt>Grid</dt><dd>All blocks of one kernel launch. There is no grid-wide barrier inside a kernel — cross-block agreement requires a new kernel launch (or atomics/cooperative groups).</dd></div>
+        <div><dt>Global memory</dt><dd>Device DRAM, visible to all threads. High bandwidth but high latency (~400–800 cycles); the usual performance bottleneck.</dd></div>
+        <div><dt>Shared memory</dt><dd>Small (tens of KB) on-chip scratchpad, private to a block, roughly 20–30× lower latency than global. Explicitly managed by the programmer for data reuse.</dd></div>
+        <div><dt>Registers</dt><dd>Fastest storage, private per thread. A finite per-SM pool — heavy register use limits how many threads can be resident.</dd></div>
+        <div><dt>Constant memory</dt><dd>Small cached read-only region, fastest when every thread in a warp reads the same address (a broadcast).</dd></div>
+        <div><dt>Coalesced access</dt><dd>When the 32 threads of a warp touch consecutive addresses, the hardware merges them into a few wide transactions. Strided or scattered access multiplies memory traffic.</dd></div>
+        <div><dt>Bank conflict</dt><dd>Shared memory is split into 32 banks. Two threads of a warp hitting different addresses in the same bank serialize; a common fix is padding an array by one element.</dd></div>
+        <div><dt>Occupancy</dt><dd>Ratio of resident warps on an SM to the hardware maximum, limited by registers, shared memory, and block-slot usage. Enough occupancy lets the scheduler hide memory latency.</dd></div>
+        <div><dt>Warp divergence</dt><dd>When threads of one warp take different branch paths, the warp executes each path serially with the other threads masked off.</dd></div>
+        <div><dt>Barrier (__syncthreads)</dt><dd>Block-level synchronization point: every thread of the block must reach it before any proceeds. Calling it inside divergent branches deadlocks or corrupts results.</dd></div>
+        <div><dt>Atomic operation</dt><dd>Read-modify-write (e.g. atomicAdd) that is safe under concurrency. Correct but serializing when many threads target the same address.</dd></div>
+        <div><dt>Reduction</dt><dd>Combining N values into one (sum, max). Done as a tree: each step halves the active threads, giving log₂(N) steps instead of N.</dd></div>
+        <div><dt>Host ↔ device transfer</dt><dd>Copies over PCIe (~tens of GB/s) — often slower than the kernel itself. Batch transfers, keep data resident on the GPU, use pinned memory and streams to overlap copy with compute.</dd></div>
+        <div><dt>Roofline model / arithmetic intensity</dt><dd>Plot of achievable FLOP/s vs arithmetic intensity (FLOPs per byte moved). Below the ridge point a kernel is memory-bound; above, compute-bound. Tells you which optimization can possibly help.</dd></div>
+      </dl>
+
+      <h3 class="sub">Core concepts</h3>
+      <div class="term-grid">
+        <article class="term-card"><h3>Think in warps, not threads</h3><p>The scheduler issues instructions to 32-thread warps. An <code>if</code> that splits a warp runs both sides serially (divergence); a warp asking for 32 scattered addresses pays for 32 transactions. Fast kernels arrange work so threads of a warp branch together and read neighboring data. Divergence between different warps costs nothing — only within a warp.</p></article>
+        <article class="term-card"><h3>Memory hierarchy is the game</h3><p>Registers (per thread) → shared memory (per block) → L2 → global DRAM, each level roughly an order of magnitude slower. Most kernels are memory-bound, so the core skill is data reuse: stage a tile of global memory into shared memory once, synchronize, then let the whole block reuse it — the classic tiled matrix-multiply pattern. Pitfall: forgetting the second __syncthreads() before overwriting the tile.</p></article>
+        <article class="term-card"><h3>Coalescing and layout</h3><p>Warp-neighbor threads should access memory-neighbor addresses. This is why GPU code prefers structure-of-arrays over array-of-structures: with AoS, thread i reading field .x strides over the other fields and wastes most of each 128-byte transaction. A transposed or column-major access pattern can cut effective bandwidth by an order of magnitude.</p></article>
+        <article class="term-card"><h3>Occupancy and latency hiding</h3><p>A global load stalls a warp for hundreds of cycles; the SM hides that by switching to other resident warps. If registers or shared memory per block are too high, too few warps fit and the SM idles. But occupancy is a means, not a score — past the point where latency is hidden, more warps can even hurt by shrinking cache per thread. Measure, don't maximize.</p></article>
+        <article class="term-card"><h3>Synchronization has scopes</h3><p>__syncthreads() only synchronizes one block. Blocks may run in any order, on different SMs, and possibly not concurrently — so "block 0 writes, block 1 reads" is a race. Grid-wide ordering comes from ending the kernel and launching another (kernel launches on one stream are ordered), or carefully with atomics. Reductions therefore finish per-block, then combine partial results in a second kernel or with atomicAdd.</p></article>
+        <article class="term-card"><h3>Roofline thinking</h3><p>Before optimizing, compute arithmetic intensity = FLOPs / bytes moved. SAXPY (y = a·x + y) does 2 FLOPs per 12 bytes — hopelessly memory-bound, so tuning math throughput is pointless; only moving fewer bytes helps. Dense matrix multiply reuses each element O(N) times — compute-bound once tiled. The roofline tells you which wall you are actually hitting, and PCIe transfers sit below both: keep data on the device across kernels.</p></article>
+      </div>
+
+      <p class="diagram-title">Execution and memory hierarchy</p>
+      <pre class="diagram">Grid (one kernel launch)
+ ├─ Block 0                Block 1   ...   Block B−1     ← independent, any order,
+ │   ├─ Warp 0 = threads  0..31  ─ lockstep (SIMT)         no grid-wide barrier
+ │   ├─ Warp 1 = threads 32..63
+ │   └─ shared memory  ← this block only, __syncthreads() barrier
+ └─ each block is scheduled onto one SM (streaming multiprocessor)
+
+ storage            scope          approx latency
+ ─────────────────  ─────────────  ──────────────────────────────
+ registers          per thread     fastest (~1 cycle)
+ shared memory      per block      ~20–30 cycles
+ L2 cache           whole device   ~200 cycles
+ global (DRAM)      whole device   ~400–800 cycles
+ host RAM (PCIe)    via memcpy     slowest — batch and overlap</pre>
+
+      <p class="diagram-title">Coalesced vs strided global access (one warp)</p>
+      <pre class="diagram">coalesced (good):   thread    0   1   2   3  ...  31
+                    address   0   4   8  12  ... 124    → 1 wide transaction
+
+strided (bad):      thread    0     1     2    ...  31
+                    address   0   128   256   ...       → 32 transactions,
+                                                          ~97% of each one wasted</pre>
+
+      <p class="diagram-title">Tree reduction (sum of 8 values in one block)</p>
+      <pre class="diagram">values:    8   3   5   1   9   2   4   6          N = 8
+            \   \   \   \  /   /   /   /
+stride 4:  (8+9)(3+2)(5+4)(1+6)                   __syncthreads()
+          =  17   5    9    7
+stride 2:  (17+9) (5+7)                           __syncthreads()
+          =  26    12
+stride 1:  (26+12) = 38                           log2(8) = 3 steps, not 7
+
+then: one atomicAdd per block, or a second kernel over per-block partials</pre>
+
+      <h3 class="sub">CUDA in practice — running real work (FFT example)</h3>
+      <div class="term-grid">
+        <article class="term-card"><h3>Anatomy of a CUDA program</h3><p>Every CUDA program follows the same five-step rhythm: allocate device memory, copy inputs up, launch the kernel with a grid/block shape that covers the data, copy results back, free. Two things bite beginners: kernel launches are <em>asynchronous</em> (the CPU races ahead — a following cudaMemcpy or explicit sync is what waits), and the grid is rounded up, so the kernel needs an <code>if (i &lt; n)</code> guard for the tail threads.</p></article>
+        <article class="term-card"><h3>Libraries before hand-written kernels</h3><p>For standard building blocks, vendor libraries are faster than anything you will write: cuFFT (FFTs), cuBLAS (matrix math), cuDNN (convolutions), Thrust/CUB (sort, scan, reduce). They are tuned per GPU generation. The professional pattern is: compose library calls for the heavy math, and write small custom kernels only for the glue — the pointwise steps between library stages.</p></article>
+        <article class="term-card"><h3>Plan once, execute many</h3><p>cuFFT (like FFTW) separates expensive setup from cheap execution: <code>cufftPlan1d()</code> chooses algorithms and allocates workspace once; <code>cufftExec*()</code> then runs at full speed as often as you like. Creating a plan per call is a classic performance bug. For many small FFTs, use a batched plan (<code>cufftPlanMany</code>) — one launch processing 1000 signals beats 1000 launches by a wide margin.</p></article>
+        <article class="term-card"><h3>Keep the pipeline on the device</h3><p>A GPU FFT that copies data host→device, transforms, and copies back is usually <em>slower</em> than the CPU — PCIe eats the win. The payoff comes from chaining: copy the signal up once, run forward FFT → filter → inverse FFT → analysis entirely on device buffers, and copy only the final result down. Design rule: move the <em>pipeline</em> to the GPU, not one function.</p></article>
+      </div>
+
+      <p class="diagram-title">A complete CUDA workflow — SAXPY, the "hello world" kernel</p>
+      <pre class="diagram">__global__ void saxpy(int n, float a, const float *x, float *y) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;   // this thread's element
+    if (i &lt; n) y[i] = a * x[i] + y[i];               // guard the tail!
+}
+
+// host side — the 5-step rhythm of almost every CUDA program:
+cudaMalloc(&amp;d_x, bytes);                             // 1. allocate on device
+cudaMemcpy(d_x, h_x, bytes, cudaMemcpyHostToDevice); // 2. copy inputs up
+int block = 256, grid = (n + block - 1) / block;     // 3. cover n with threads
+saxpy&lt;&lt;&lt;grid, block&gt;&gt;&gt;(n, 2.0f, d_x, d_y);           // 4. launch — asynchronous!
+cudaMemcpy(h_y, d_y, bytes, cudaMemcpyDeviceToHost); // 5. copy back (this waits)
+
+grid rounding:  n = 1,000,000, block = 256  →  grid = 3907 blocks
+3907 × 256 = 1,000,192 threads — the if (i &lt; n) guard idles the extra 192</pre>
+
+      <p class="diagram-title">GPU fast convolution with cuFFT — DSP meets CUDA</p>
+      <pre class="diagram">filter a long signal with a big FIR on the GPU (overlap-save method):
+
+setup once:   cufftPlan1d(&amp;plan, N, CUFFT_C2C, batch);   // expensive — reuse it!
+              copy signal blocks and precomputed H[k] to device
+
+per block:    ┌───────────┐    ┌────────────────────┐    ┌───────────┐
+  device ──▶  │ cufftExec │ ─▶ │ pointwise multiply │ ─▶ │ cufftExec │ ─▶ stitch
+  memory      │ (forward) │    │ Y[k] = X[k]·H[k]   │    │ (inverse) │    output
+              └───────────┘    │  (custom ~10-line  │    └───────────┘
+                               │      kernel)       │
+                               └────────────────────┘
+all three stages read/write DEVICE memory only — the signal goes up once,
+the result comes down once
+
+why it wins:  FFT convolution is O(N log N) vs O(N·M) direct, and cuFFT is
+already tuned — your only custom code is the tiny pointwise kernel</pre>
+
+      <h3 class="sub">Finding the bottleneck — and designing it away</h3>
+      <div class="term-grid">
+        <article class="term-card"><h3>Profile the timeline first</h3><p>Before touching any kernel, run Nsight Systems (<code>nsys profile ./app</code>) and look at the timeline: how much wall time is memcpy, how much is kernels, and how much is gaps where the GPU sits idle waiting for the CPU? Optimizing a kernel that is 10% of the timeline caps your win at 10% — the timeline tells you where the time actually goes, which is frequently not where you guessed.</p></article>
+        <article class="term-card"><h3>Then deep-dive one kernel</h3><p>Nsight Compute (<code>ncu</code>) profiles a single kernel: memory throughput vs peak, compute throughput vs peak, occupancy, and warp-stall reasons. The first-look rule: memory pipe near peak → memory-bound; compute pipe near peak → compute-bound; <em>neither</em> near peak → latency-bound (not enough parallel work in flight — the subtle case).</p></article>
+        <article class="term-card"><h3>Back-of-envelope beats guessing</h3><p>Effective bandwidth = bytes read + written ÷ kernel time. A kernel moving 800 MB in 10 ms achieves 80 GB/s; on a GPU with 800 GB/s peak, that screams latency/access-pattern problems, while 700 GB/s means the kernel is already near the roof and only algorithmic changes (move fewer bytes) can help. Two lines of arithmetic tell you which fight to pick.</p></article>
+        <article class="term-card"><h3>Amdahl's law rules the pipeline</h3><p>If 20% of the wall time is a serial CPU stage, the best possible overall speedup is 5× no matter how infinite the GPU is. Bottleneck removal is iterative: fix the biggest one and the second-biggest becomes the new limit. This is why end-to-end timeline profiling is repeated after every change — the bottleneck moves.</p></article>
+      </div>
+
+      <p class="diagram-title">Bottleneck decision tree — measure, classify, fix</p>
+      <pre class="diagram">nsys timeline of the whole app
+ │
+ ├─ memcpys dominate?  ──▶ TRANSFER-BOUND
+ │     fix by design: keep data resident on device across kernels,
+ │     move the whole pipeline (not one function), pinned memory,
+ │     overlap copy/compute with streams
+ │
+ ├─ gaps between kernels? ──▶ LAUNCH / CPU-BOUND
+ │     fix by design: fuse tiny kernels, batch work (cufftPlanMany),
+ │     CUDA Graphs, overlap CPU prep with GPU compute
+ │
+ └─ one kernel dominates? ──▶ profile it with ncu
+        │
+        ├─ memory pipe ~peak ──▶ MEMORY-BOUND
+        │     fuse passes, tile reuse into shared memory, SoA layout,
+        │     coalesce, smaller types (FP16), recompute instead of store
+        │
+        ├─ compute pipe ~peak ──▶ COMPUTE-BOUND
+        │     lower precision / tensor cores, better algorithm
+        │     (FFT conv instead of direct), call a tuned library
+        │
+        └─ neither ~peak ──▶ LATENCY-BOUND
+              more parallelism: more blocks, fewer registers per thread,
+              fix divergence &amp; bank conflicts, several elements per thread</pre>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Measured bottleneck</th><th>Design change that removes it</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Host↔device copies dominate the timeline</td><td>Keep buffers resident on the GPU between kernels; upload once, download once. Use pinned memory + <code>cudaMemcpyAsync</code> + streams so batch k+1 uploads while batch k computes.</td></tr>
+            <tr><td>Memory-bound kernel (bandwidth near peak)</td><td>Move fewer bytes: fuse consecutive elementwise kernels into one pass, tile reused data in shared memory, switch AoS→SoA for coalescing, use FP16 where precision allows, recompute cheap values instead of storing them.</td></tr>
+            <tr><td>Compute-bound kernel (ALU pipes near peak)</td><td>Cheaper math: lower precision / tensor cores, or a better algorithm — O(N log N) FFT convolution instead of O(N·M) direct; replace hand-rolled math with cuBLAS/cuFFT.</td></tr>
+            <tr><td>Latency-bound (nothing near peak)</td><td>Expose more parallelism: launch more/smaller blocks, cut register use so more warps fit, remove divergence and bank conflicts, give each thread several independent elements (ILP).</td></tr>
+            <tr><td>Thousands of tiny kernel launches</td><td>Batch: one kernel over all items, batched library plans, or CUDA Graphs to replay a whole launch sequence with one call.</td></tr>
+            <tr><td>Serial CPU stage between GPU stages</td><td>Amdahl: pipeline it (CPU preprocesses batch k+1 during GPU batch k) or move it to the GPU even if the GPU runs that stage inefficiently — idle-GPU time is the real cost.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="link-list">
+        <a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/" target="_blank" rel="noopener">CUDA C++ Programming Guide</a>
+        <a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noopener">CUDA C++ Best Practices Guide</a>
+        <a href="https://developer.nvidia.com/blog/even-easier-introduction-cuda/" target="_blank" rel="noopener">An Even Easier Introduction to CUDA</a>
+        <a href="https://en.wikipedia.org/wiki/Roofline_model" target="_blank" rel="noopener">Roofline model</a>
+        <a href="https://docs.nvidia.com/cuda/cufft/" target="_blank" rel="noopener">cuFFT documentation</a>
+        <a href="https://developer.nvidia.com/nsight-systems" target="_blank" rel="noopener">Nsight Systems (timeline profiler)</a>
+        <a href="https://developer.nvidia.com/nsight-compute" target="_blank" rel="noopener">Nsight Compute (kernel profiler)</a>
+      </div>
+
+      <h3 class="sub">Practice questions</h3>
+      <span class="sec-score" id="sec-score-gpu">Section score: 0 / 0</span>
+      <div class="quiz" data-section="gpu"></div>
+    </section>
+
+    <!-- ================= 3. EMBEDDED & FIRMWARE ================= -->
+    <section id="embedded" class="section">
+      <h2>3. Embedded &amp; Firmware</h2>
+      <p class="section-note">
+        Software that talks to hardware directly: registers, interrupts, DMA, serial buses, and the
+        bare-metal-vs-RTOS decision — plus the cross-compile → flash → debug loop that everything
+        else depends on.
+      </p>
+
+      <h3 class="sub">Key terms</h3>
+      <dl class="def-list">
+        <div><dt>Microcontroller (MCU)</dt><dd>A single chip with CPU core, flash, SRAM, and peripherals (e.g. ARM Cortex-M). MHz-class clocks, KB–MB memory, usually no MMU; runs bare metal or an RTOS with deterministic timing.</dd></div>
+        <div><dt>Application processor</dt><dd>GHz-class chip with MMU and external DRAM (e.g. Cortex-A) running a full OS such as Linux. Vastly more capable, but boot time, power draw, and scheduling jitter make it a poor fit for hard real-time control.</dd></div>
+        <div><dt>Memory-mapped register</dt><dd>A peripheral control/status word that appears at a fixed address; ordinary load/store instructions configure the hardware. Datasheet + address = driver.</dd></div>
+        <div><dt>volatile</dt><dd>C qualifier telling the compiler a value can change outside normal program flow (hardware register, ISR-shared variable), so every access must really happen — no caching in registers, no reordering away.</dd></div>
+        <div><dt>Interrupt / ISR</dt><dd>A hardware event that suspends the current code and jumps to an Interrupt Service Routine. The controller (e.g. NVIC) handles prioritization and nesting.</dd></div>
+        <div><dt>Interrupt latency</dt><dd>Time from the hardware event to the first ISR instruction — grows with critical sections that disable interrupts and with higher-priority ISRs running.</dd></div>
+        <div><dt>DMA</dt><dd>Direct Memory Access: a peripheral engine that moves data between memory and peripherals without CPU involvement, raising one interrupt per buffer instead of per byte.</dd></div>
+        <div><dt>GPIO</dt><dd>General-purpose I/O pin, configurable as input or output, often with pull-ups/downs and pin-change interrupts.</dd></div>
+        <div><dt>Timer / PWM</dt><dd>Hardware counters driven by a prescaled clock. PWM toggles a pin with a set period and duty cycle — the standard way to drive LED brightness, motor speed, and servos with zero CPU load.</dd></div>
+        <div><dt>UART</dt><dd>Asynchronous serial: no shared clock; both sides agree on a baud rate and resynchronize on each start bit. Two wires (TX/RX), point-to-point.</dd></div>
+        <div><dt>SPI</dt><dd>Synchronous full-duplex master/slave bus: SCLK, MOSI, MISO, plus one chip-select per slave. Simple and fast (tens of MHz), at the cost of pins.</dd></div>
+        <div><dt>I2C</dt><dd>Two-wire (SDA/SCL) addressed multi-drop bus with open-drain lines and pull-up resistors, ACK per byte, ~100–400 kHz typical. Many devices on two pins, but slower and more protocol overhead.</dd></div>
+        <div><dt>Bare metal / superloop</dt><dd>No OS: init peripherals, then one main loop polling flags set by ISRs. Simple, fully deterministic, but everything shares one loop's timing budget.</dd></div>
+        <div><dt>RTOS</dt><dd>Real-time operating system (FreeRTOS, Zephyr): preemptive priority scheduler, tasks with own stacks, queues/semaphores/mutexes, and bounded response times.</dd></div>
+        <div><dt>Task / scheduler / preemption</dt><dd>The scheduler always runs the highest-priority ready task, preempting lower-priority work the moment something more urgent becomes ready (e.g. woken by an ISR).</dd></div>
+        <div><dt>Priority inversion</dt><dd>A low-priority task holding a mutex blocks a high-priority task while medium-priority tasks run. Fix: priority inheritance — the holder temporarily inherits the waiter's priority.</dd></div>
+        <div><dt>Watchdog timer</dt><dd>A countdown that resets the chip unless firmware "kicks" it periodically — the last-resort recovery from hangs and lockups. Kick from a place that proves the system is actually healthy.</dd></div>
+        <div><dt>Low-power modes</dt><dd>Sleep/stop/standby states that shut down clocks and power domains. Deeper modes save more current but wake more slowly and may lose RAM/peripheral state; battery devices live asleep and wake on interrupts.</dd></div>
+        <div><dt>Bootloader</dt><dd>Small first-stage program that can validate and update the main firmware image (over UART/USB/OTA) before jumping to it.</dd></div>
+        <div><dt>JTAG / SWD</dt><dd>Debug ports used to flash the chip and debug live: halt the core, set hardware breakpoints, inspect registers and memory while the hardware runs.</dd></div>
+      </dl>
+
+      <h3 class="sub">Core concepts</h3>
+      <div class="term-grid">
+        <article class="term-card"><h3>MCU or application processor?</h3><p>Choose by timing guarantees, power, and cost: an MCU wakes from sleep in microseconds, runs an ISR with sub-microsecond jitter, and idles at microamps; a Linux-class processor gives you networking stacks, filesystems, and processes but millisecond-scale jitter and seconds of boot. Many products use both — Linux for UI/cloud, an MCU for the motor loop — talking over UART or SPI.</p></article>
+        <article class="term-card"><h3>Registers and volatile</h3><p>Firmware configures hardware by read-modify-write on memory-mapped registers: read, mask, set bits, write back. Two classic pitfalls: forgetting <code>volatile</code>, so the optimizer deletes "redundant" reads of a status register and your busy-wait loop never sees the flag; and RMW races when an ISR touches the same register between your read and write.</p></article>
+        <article class="term-card"><h3>ISRs: short, then defer</h3><p>An ISR blocks everything at or below its priority, so do the minimum: read the data, clear the interrupt flag, set a volatile flag or push to a queue, return. Heavy work happens in the main loop or a woken task. Sharing data with an ISR needs a critical section (briefly disable interrupts) or atomic access — a plain 32-bit counter updated by both sides can tear or lose updates. Forgetting to clear the peripheral's flag re-enters the ISR forever.</p></article>
+        <article class="term-card"><h3>DMA: move data without the CPU</h3><p>At 1 MB/s a byte-per-interrupt UART driver takes a million interrupts a second — DMA turns that into one interrupt per buffer. Ping-pong (double) buffering lets the CPU process buffer A while DMA fills buffer B. Pitfalls: on cached parts the CPU may read stale RAM unless caches are invalidated (or buffers placed in non-cached regions), and the buffer must stay valid for the DMA's lifetime — no stack buffers.</p></article>
+        <article class="term-card"><h3>Choosing a serial bus</h3><p>UART: two wires, no clock, point-to-point, both ends must agree on baud — the default debug/console link. SPI: fastest and simplest protocol, full duplex, but one CS pin per device — pick it for high-rate peripherals like displays and flash. I2C: two wires shared by many addressed devices with ACKs — pick it for low-rate sensor swarms; remember the pull-ups, since the lines are open-drain and can only pull low.</p></article>
+        <article class="term-card"><h3>Bare metal vs RTOS, and staying alive</h3><p>A superloop is right when timing is simple and code is small; an RTOS earns its footprint when independent activities with different deadlines would otherwise turn the loop into a hand-rolled scheduler. RTOS pitfalls: unbounded blocking in high-priority tasks, priority inversion (enable priority inheritance on mutexes), and stack overflows per task. Whatever the architecture, a watchdog guards against the failure you didn't foresee — and the build/flash/debug loop (cross-compiler + linker script → .elf/.hex → flash over SWD → printf on UART or halt in a debugger) is the daily rhythm everything else depends on.</p></article>
+      </div>
+
+      <p class="diagram-title">Interrupt timeline — short ISR, deferred work</p>
+      <pre class="diagram">main loop:  ────────────────■ suspended ─────────■ resumed ──────────────
+                            │                    │
+IRQ (UART byte arrives) ────┘                    │
+                 hardware saves context, vectors to ISR
+                            ▼                    │
+ISR (high priority):        ██ read byte, clear flag, push to queue ─┘
+                                      │                (keep this short!)
+main loop, later:                     └──&gt; sees queue non-empty,
+                                           parses message, slow work here</pre>
+
+      <p class="diagram-title">SPI transfer — one byte, mode 0</p>
+      <pre class="diagram">CS    ‾‾‾\_____________________________________/‾‾‾    active low, frames the byte
+
+SCK   _____/‾\_/‾\_/‾\_/‾\_/‾\_/‾\_/‾\_/‾\_____        8 clock pulses from master
+
+MOSI  ────&lt;b7&gt;&lt;b6&gt;&lt;b5&gt;&lt;b4&gt;&lt;b3&gt;&lt;b2&gt;&lt;b1&gt;&lt;b0&gt;────        master → slave
+MISO  ────&lt;b7&gt;&lt;b6&gt;&lt;b5&gt;&lt;b4&gt;&lt;b3&gt;&lt;b2&gt;&lt;b1&gt;&lt;b0&gt;────        slave → master, same clocks
+
+full duplex: both directions shift on the same 8 clock edges</pre>
+
+      <p class="diagram-title">Bare-metal superloop vs RTOS tasks</p>
+      <pre class="diagram">bare metal (superloop)              RTOS (preemptive priorities)
+──────────────────────              ────────────────────────────
+init_clocks(); init_uart();         task_control   (prio 3, 1 kHz loop)
+init_timers(); enable_irq();        task_comms     (prio 2, blocks on queue)
+while (1) {                         task_logging   (prio 1, background)
+    if (uart_flag)  handle_rx();
+    if (tick_flag)  run_control();  scheduler: highest-priority READY task
+    maybe_sleep();                  runs now; ISRs wake tasks; a blocked
+}                                   task costs zero CPU
+one timing budget shared by all     bounded latency per priority level</pre>
+
+      <h3 class="sub">Deeper dives</h3>
+      <div class="term-grid">
+        <article class="term-card"><h3>Atomic register writes vs read-modify-write</h3><p><code>GPIOA-&gt;ODR |= (1&lt;&lt;5)</code> is three steps — read, modify, write — and an ISR writing the same register in between is silently undone. Hardware designers provide single-write alternatives: set/reset registers (BSRR on STM32), where one store atomically sets or clears chosen bits. Rule: prefer write-only set/clear registers for anything an ISR might also touch; otherwise wrap the RMW in a critical section.</p></article>
+        <article class="term-card"><h3>Interrupt plumbing on Cortex-M</h3><p>The vector table at the start of flash holds the initial stack pointer and one handler address per exception. The NVIC assigns each IRQ a priority (lower number = more urgent), preempts lower-priority handlers (nesting), and tail-chains back-to-back interrupts without re-stacking. Design the priority map deliberately: motor-fault above tick, tick above UART, everything documented — an accidental priority inversion between ISRs is painful to debug.</p></article>
+        <article class="term-card"><h3>DMA patterns that actually ship</h3><p>The workhorse is circular DMA with half- and full-transfer interrupts — ping-pong buffering with zero per-byte CPU cost. On cached cores (M7 and up), clean the cache before DMA reads memory and invalidate before the CPU reads what DMA wrote, or you will chase "corrupted" data that is really stale cache. And DMA is not free design-wise: for a 9600-baud UART, a plain receive interrupt is simpler and just as good.</p></article>
+        <article class="term-card"><h3>Bus protocol details that matter</h3><p>SPI has four modes from CPOL/CPHA (clock idle level, sample edge) — mode mismatch reads shifted garbage; check the peripheral's datasheet timing diagram. I2C reads are two-phase: write the register address, repeated START, then read — and slaves may stretch the clock. UART 8N1 spends 10 bits per byte, so 115200 baud moves at most ~11.5 kB/s — budget your logging accordingly.</p></article>
+        <article class="term-card"><h3>RTOS primitives: pick the right one</h3><p>Queue = data plus wakeup (the default ISR→task channel). Binary semaphore = pure signal, no data. Mutex = ownership with priority inheritance — never lock one in an ISR. Event groups = wait for any/all of several flags. In ISRs, only the <code>*FromISR</code> variants are legal. Size each task's stack with high-water marks, not optimism — stack overflow is the classic "random" RTOS crash.</p></article>
+        <article class="term-card"><h3>Watchdog strategy, not just a kick</h3><p>A watchdog kicked from a timer ISR proves only that the timer works while the application is dead. Better: a supervisor pattern — each task sets its bit in a check-in mask, and one place kicks the dog only when all bits are present, then clears the mask. Windowed watchdogs also catch too-early kicks (runaway loops). On boot, read the reset-cause register and log it — a device that resets in the field should tell you why.</p></article>
+        <article class="term-card"><h3>Low power is a duty-cycle design</h3><p>Average current ≈ I<sub>sleep</sub> + (t<sub>awake</sub>/T)·I<sub>awake</sub> — the win comes from sleeping longer, not from shaving awake current. Architecture: wake on interrupt (RTC, pin, DMA-complete), do the burst of work fast, return to the deepest mode whose wake latency you can afford. RTOS tickless idle stops the tick interrupt from waking the chip 1000× a second. Let peripherals + DMA gather data while the CPU sleeps.</p></article>
+        <article class="term-card"><h3>Finding firmware bottlenecks</h3><p>The MCU profilers are a GPIO pin and a counter: toggle a pin around the code and measure with a logic analyzer (also shows jitter across runs), or read the DWT cycle counter (CYCCNT) before/after. Overcome bottlenecks by design, not micro-tweaks: move data with DMA instead of loops, generate waveforms with timers/PWM instead of bit-banging, do math in fixed point or CMSIS-DSP, precompute lookup tables, and replace polling loops with interrupts + sleep.</p></article>
+        <article class="term-card"><h3>The build → flash → debug loop</h3><p>Cross-compiler (arm-none-eabi-gcc) turns C into an ELF; the linker script decides what goes in flash vs RAM (vector table first, <code>.data</code> initializers copied to RAM by the startup code); objcopy makes the .bin/.hex; the probe flashes it over SWD. Debug tools in order of intrusiveness: hardware breakpoints (halt the core), RTT/SWO trace (printf without stopping), UART logs, and the GPIO pin. For timing bugs, halting changes behavior — use the non-halting ones.</p></article>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Bus</th><th>Wires</th><th>Clock</th><th>Typical speed</th><th>Topology</th><th>Pick it for</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>UART</td><td>2 (TX, RX)</td><td>none — both sides agree on baud</td><td>9600 baud – a few Mbaud</td><td>point-to-point</td><td>debug console, GPS, modems, inter-board links</td></tr>
+            <tr><td>SPI</td><td>3 shared + 1 CS per slave</td><td>master drives SCLK</td><td>10–100+ MHz</td><td>star, one chip-select each</td><td>displays, external flash, fast ADCs — anything high-rate</td></tr>
+            <tr><td>I2C</td><td>2 shared (SDA, SCL)</td><td>master drives SCL, open-drain</td><td>100k / 400k / 1M</td><td>multi-drop, 7-bit addresses</td><td>sensor swarms and config interfaces on minimal pins</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="diagram-title">Memory map — "everything is an address"</p>
+      <pre class="diagram">typical Cortex-M memory map:
+
+0xE000_0000 ─ system: NVIC, SysTick, DWT cycle counter
+0x4002_0000 ─ GPIOA:  ODR @ +0x14, BSRR @ +0x18, ...        ┐ peripheral
+0x4001_3800 ─ USART1: SR, DR, BRR, ...                      ┘ registers
+0x2000_0000 ─ SRAM: globals, heap, task stacks
+0x0800_0000 ─ flash: vector table (initial SP, reset handler), code, const data
+
+#define GPIOA_BSRR (*(volatile uint32_t*)0x40020018)   // this line IS the driver
+GPIOA_BSRR = (1 &lt;&lt; 5);                                 // LED on — one store</pre>
+
+      <p class="diagram-title">The read-modify-write race — and the atomic fix</p>
+      <pre class="diagram">the race:                                the hardware-assisted fix:
+
+main: read   ODR       → 0b0001          GPIOA-&gt;BSRR = (1 &lt;&lt; 5);
+IRQ!: ISR writes ODR   → 0b0011
+main: modify (set bit2)→ 0b0101          one single store; the peripheral
+main: write  ODR       = 0b0101  ✗       sets bit 5 itself — nothing read,
+      the ISR's bit 1 is LOST            nothing to lose, no critical section</pre>
+
+      <p class="diagram-title">UART framing — 8N1</p>
+      <pre class="diagram">idle ‾‾‾‾\_____/&lt;b0&gt;&lt;b1&gt;&lt;b2&gt;&lt;b3&gt;&lt;b4&gt;&lt;b5&gt;&lt;b6&gt;&lt;b7&gt;/‾‾‾‾‾ idle
+           start   LSB first, receiver samples mid-bit    stop
+
+10 bits on the wire per data byte → 115200 baud ≈ 11,520 bytes/s max
+no clock wire: the receiver re-synchronizes on every start-bit edge —
+which is why a baud mismatch garbles data instead of just slowing down</pre>
+
+      <p class="diagram-title">I2C transaction — read register 0x0F from a sensor at 0x68</p>
+      <pre class="diagram">START │ 0x68+W │ACK│ 0x0F │ACK│ reSTART │ 0x68+R │ACK│ data │NACK│ STOP
+       └─ master drives ──┘        └─ address again, now reading ──┘
+
+rules:  SDA may change only while SCL is low (a change while high = START/STOP)
+        every byte is ACKed by the receiver; master NACKs the last read byte
+        both lines are open-drain + pull-ups; a slow slave may stretch SCL</pre>
+
+      <p class="diagram-title">Circular DMA with ping-pong halves</p>
+      <pre class="diagram">one buffer, two halves, two interrupts:
+
+DMA writes:   [ half A ████████ ][ half B ░░░░░░░░ ]   half-transfer IRQ
+                                                        → CPU processes A
+DMA wraps:    [ half A ░░░░░░░░ ][ half B ████████ ]   transfer-complete IRQ
+                                                        → CPU processes B
+
+CPU always works one half behind the DMA — zero per-byte interrupts,
+no data loss while processing a half is faster than filling one</pre>
+
+      <p class="diagram-title">Low-power duty cycling — where battery life really comes from</p>
+      <pre class="diagram">sensor node sampling once per second:
+
+  8 mA ┤ ██ awake 20 ms:                            ██
+       │ ██ wake → sample → filter → radio burst    ██
+       │ ██                                         ██
+  2 µA ┤   ───────────── sleep 980 ms ────────────────
+       └────────────────────────────────────────────── t
+
+I_avg ≈ 2 µA + (20 ms / 1000 ms) × 8 mA ≈ 162 µA   → months on a coin cell
+halving awake TIME beats halving awake CURRENT — optimize the duty cycle</pre>
+
+      <div class="link-list">
+        <a href="https://interrupt.memfault.com/" target="_blank" rel="noopener">Interrupt — Memfault embedded blog</a>
+        <a href="https://www.freertos.org/Documentation/RTOS_book.html" target="_blank" rel="noopener">Mastering the FreeRTOS Kernel (free book)</a>
+        <a href="https://learn.sparkfun.com/tutorials/serial-peripheral-interface-spi" target="_blank" rel="noopener">SPI tutorial — SparkFun</a>
+        <a href="https://learn.sparkfun.com/tutorials/i2c" target="_blank" rel="noopener">I2C tutorial — SparkFun</a>
+        <a href="https://developer.arm.com/documentation/" target="_blank" rel="noopener">Arm developer documentation</a>
+      </div>
+
+      <h3 class="sub">Practice questions</h3>
+      <span class="sec-score" id="sec-score-embedded">Section score: 0 / 0</span>
+      <div class="quiz" data-section="embedded"></div>
+    </section>
+
+    <!-- ================= RESOURCES ================= -->
+    <section id="resources" class="section">
+      <h2>Resources &amp; Further Reading</h2>
+      <div class="source-grid">
+        <article class="course"><h3>DSP</h3><p>Free full-length textbooks: Steven Smith's practical guide and Julius Smith's mathematical series on the DFT, filters, and spectral audio processing.</p><p><a href="https://www.dspguide.com/" target="_blank" rel="noopener">dspguide.com</a> | <a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener">CCRMA online books</a></p></article>
+        <article class="course"><h3>GPU programming</h3><p>NVIDIA's programming guide is the reference; the best-practices guide covers coalescing, occupancy, and transfer optimization with worked examples.</p><p><a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/" target="_blank" rel="noopener">Programming guide</a> | <a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noopener">Best practices</a></p></article>
+        <article class="course"><h3>Embedded &amp; firmware</h3><p>Memfault's Interrupt blog for deep practical articles (linkers, debugging, watchdogs); FreeRTOS book for RTOS concepts; SparkFun for bus basics.</p><p><a href="https://interrupt.memfault.com/" target="_blank" rel="noopener">interrupt.memfault.com</a> | <a href="https://www.freertos.org/" target="_blank" rel="noopener">freertos.org</a></p></article>
+        <article class="course"><h3>Sibling study pages</h3><p>The coding-skills page covers the software side of the same assessments: coding, debugging, compilers, porting, and tooling.</p><p><a href="index.html">This hub</a></p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Plain HTML/CSS/JS, no dependencies, works offline. Styles shared with the Isaac Sim study hub.</p>
+  </footer>
+
+<script>
+const quizData = {
+  dsp: [
+    {
+      q: "A sensor signal contains frequencies up to 4 kHz. What is the minimum sample rate that avoids aliasing?",
+      options: [
+        ["Anything above 8 kHz", true],
+        ["Exactly 4 kHz", false],
+        ["Anything above 4 kHz", false],
+        ["16 kHz, four times the bandwidth", false]
+      ],
+      explain: "The Nyquist criterion requires fs > 2·fmax, so anything above 8 kHz works in principle. Real systems sample somewhat higher to leave room for a realizable anti-aliasing filter roll-off — but the theoretical bound is 2× the highest frequency."
+    },
+    {
+      q: "A 7 kHz tone is sampled at 10 kHz with no anti-aliasing filter. At what frequency does it appear in the sampled signal?",
+      options: [
+        ["3 kHz", true],
+        ["7 kHz", false],
+        ["2 kHz", false],
+        ["It disappears entirely", false]
+      ],
+      explain: "The spectrum folds around fs/2 = 5 kHz. A component at f > fs/2 aliases to |fs − f| = |10 − 7| = 3 kHz. The samples of a 7 kHz sine at 10 kHz are literally identical to those of a 3 kHz sine — which is why aliasing cannot be undone afterwards."
+    },
+    {
+      q: "Approximately how much signal-to-noise ratio does each additional bit of ADC resolution add?",
+      options: [
+        ["About 6 dB", true],
+        ["About 3 dB", false],
+        ["About 12 dB", false],
+        ["It doubles the SNR in dB", false]
+      ],
+      explain: "Each bit halves the quantization step, halving the error amplitude — a factor of 2 in amplitude is 20·log10(2) ≈ 6.02 dB. The full formula for a full-scale sine is SNR ≈ 6.02·N + 1.76 dB, giving ~74 dB for 12 bits and ~98 dB for 16 bits."
+    },
+    {
+      q: "You convolve a length-100 input with a length-21 FIR impulse response. How long is the full output?",
+      options: [
+        ["120 samples", true],
+        ["100 samples", false],
+        ["121 samples", false],
+        ["2100 samples", false]
+      ],
+      explain: "Full convolution of length-N and length-M sequences yields N + M − 1 samples: 100 + 21 − 1 = 120. The −1 is because the two sequences overlap in at least one sample at each extreme position."
+    },
+    {
+      q: "Why is an FIR filter unconditionally stable?",
+      options: [
+        ["It has no feedback, so its output is a finite weighted sum of past inputs", true],
+        ["Its coefficients are always less than 1", false],
+        ["It processes only positive frequencies", false],
+        ["Its impulse response is infinite but decaying", false]
+      ],
+      explain: "An FIR output is a finite sum of bounded inputs times fixed coefficients — bounded input always gives bounded output, regardless of coefficient values. In pole terms, all poles sit at the origin. IIR filters, whose feedback creates poles elsewhere, can go unstable."
+    },
+    {
+      q: "What property must FIR coefficients have for the filter to have exactly linear phase?",
+      options: [
+        ["Symmetric (or antisymmetric) about the center tap", true],
+        ["All positive", false],
+        ["Summing to exactly 1", false],
+        ["Monotonically decreasing", false]
+      ],
+      explain: "Symmetric coefficients h[k] = h[N−1−k] (or antisymmetric with a sign flip) give exactly linear phase: every frequency is delayed by the same (N−1)/2 samples, so waveform shape is preserved. This is a key reason to choose FIR for audio crossovers and communication pulse shaping."
+    },
+    {
+      q: "A causal IIR filter is stable if and only if…",
+      options: [
+        ["all poles of H(z) lie strictly inside the unit circle", true],
+        ["all zeros of H(z) lie inside the unit circle", false],
+        ["it has more zeros than poles", false],
+        ["its coefficients are all smaller than 1", false]
+      ],
+      explain: "Poles determine the feedback behavior: a pole at radius r contributes a term ~rⁿ to the impulse response, which decays only if r < 1. Zeros can be anywhere without affecting stability (they affect phase/minimum-phase properties). Coefficient size alone proves nothing — pole locations are what matter."
+    },
+    {
+      q: "The FFT reduces the cost of an N-point DFT from O(N²) to…",
+      options: [
+        ["O(N log N)", true],
+        ["O(N)", false],
+        ["O(log N)", false],
+        ["O(N²/2)", false]
+      ],
+      explain: "Radix-2 FFT decomposes the DFT into log2(N) stages of N/2 butterflies each: (N/2)·log2(N) multiplies. For N = 1024 that is ~5,000 versus ~1,000,000 for the direct DFT — the speedup that made real-time spectral processing practical."
+    },
+    {
+      q: "You take a 1024-point FFT of a signal sampled at 48 kHz. What is the spacing between frequency bins?",
+      options: [
+        ["46.875 Hz", true],
+        ["1024 Hz", false],
+        ["48 Hz", false],
+        ["23.4 Hz", false]
+      ],
+      explain: "Bin spacing is fs/N = 48000/1024 = 46.875 Hz. To resolve two tones 10 Hz apart you would need a longer window (N ≥ 4800 at this rate) — frequency resolution is bought with observation time, not with more processing."
+    },
+    {
+      q: "What causes spectral leakage in an FFT?",
+      options: [
+        ["The analysis block contains a non-integer number of periods, creating an implied edge discontinuity", true],
+        ["Quantization noise in the ADC", false],
+        ["Using too many FFT points", false],
+        ["Sampling above the Nyquist rate", false]
+      ],
+      explain: "The DFT treats the block as one period of an infinite repetition. If a tone doesn't complete a whole number of cycles in the block, the repetition has a jump at the seam, and that discontinuity spreads the tone's energy across many bins. Windowing tapers the edges to zero to suppress exactly this."
+    },
+    {
+      q: "Compared to a rectangular window, a Hann window gives you…",
+      options: [
+        ["lower sidelobes (less leakage) at the cost of a wider main lobe (worse resolution)", true],
+        ["better resolution and less leakage at the same time", false],
+        ["a shorter FFT computation", false],
+        ["higher frequency bins", false]
+      ],
+      explain: "This is the fundamental window tradeoff: tapering suppresses sidelobe leakage but widens the main lobe, blurring closely spaced tones. Rectangular has the narrowest main lobe but sidelobes only ~13 dB down; Hann trades some width for ~31 dB sidelobes. There is no window that improves both."
+    },
+    {
+      q: "In the z-domain, what does multiplying a signal's transform by z⁻¹ correspond to in the time domain?",
+      options: [
+        ["Delaying the signal by one sample", true],
+        ["Advancing the signal by one sample", false],
+        ["Differentiating the signal", false],
+        ["Scaling the signal by 1/z", false]
+      ],
+      explain: "z⁻¹ is the unit-delay operator: Z{x[n−1]} = z⁻¹·X(z). This is why difference equations translate directly into H(z) as polynomials in z⁻¹, and why block diagrams label their delay elements z⁻¹."
+    },
+    {
+      q: "What range of real values can a Q15 fixed-point number (16-bit, 15 fractional bits) represent?",
+      options: [
+        ["−1 to just under +1 (1 − 2⁻¹⁵)", true],
+        ["−32768 to +32767 volts", false],
+        ["0 to 65535", false],
+        ["−15 to +15", false]
+      ],
+      explain: "Q15 interprets a signed 16-bit integer with an implied divide by 2¹⁵: −32768/32768 = −1.0 up to +32767/32768 ≈ +0.99997. Note the asymmetry: +1.0 is not representable, which is why negating −1.0 in Q15 overflows — a classic fixed-point bug."
+    },
+    {
+      q: "In a fixed-point audio pipeline, why is saturation arithmetic preferred over wraparound on overflow?",
+      options: [
+        ["Wraparound jumps from +max to −min, producing a violent glitch; saturation clips gracefully at the rail", true],
+        ["Saturation is faster to compute than wraparound", false],
+        ["Wraparound loses the sign bit permanently", false],
+        ["Saturation increases the effective bit depth", false]
+      ],
+      explain: "Wraparound (default C integer behavior) maps a slightly-too-large positive value to a large negative one — a full-scale discontinuity heard as a loud click, or in a control loop, a sudden command reversal. Saturating at the rail distorts mildly and recoverably, which is why DSP instruction sets have saturating MAC instructions."
+    },
+    {
+      q: "Where must the anti-aliasing filter be placed, and what kind of filter is it?",
+      options: [
+        ["An analog lowpass before the ADC", true],
+        ["A digital lowpass right after the ADC", false],
+        ["A digital highpass before the DAC", false],
+        ["An analog bandpass after the ADC", false]
+      ],
+      explain: "Aliasing happens at the instant of sampling, so out-of-band energy must be removed before the ADC — necessarily in the analog domain. A digital filter afterwards is too late: aliased components have already folded on top of legitimate in-band frequencies and are indistinguishable from them."
+    },
+    {
+      q: "A 5-sample moving average, y[n] = (x[n] + x[n−1] + … + x[n−4])/5, is best described as…",
+      options: [
+        ["an FIR lowpass filter", true],
+        ["an IIR lowpass filter", false],
+        ["an FIR highpass filter", false],
+        ["not a filter, just averaging", false]
+      ],
+      explain: "It is a convolution with the finite impulse response h = [1/5, 1/5, 1/5, 1/5, 1/5] — FIR by definition — and averaging smooths fast changes while passing slow ones, i.e. lowpass. It's the simplest useful digital filter, though its stopband ripple makes it a poor one for demanding jobs."
+    },
+    {
+      q: "Before decimating a 48 kHz signal down to 12 kHz (keep every 4th sample), what must you do?",
+      options: [
+        ["Lowpass filter to below 6 kHz first, then discard samples", true],
+        ["Nothing — discarding samples is lossless", false],
+        ["Highpass filter to remove DC offset", false],
+        ["Apply a Hann window to the whole signal", false]
+      ],
+      explain: "Decimation lowers the Nyquist limit to the new fs/2 = 6 kHz. Any content between 6 and 24 kHz would alias into the retained band when samples are dropped, so it must be filtered out first. Filter-then-downsample is the definition of proper decimation; skipping the filter is a classic bug that shows up as phantom low-frequency tones."
+    }
+  ],
+  gpu: [
+    {
+      q: "On NVIDIA GPUs, how many threads make up a warp, and how do they execute?",
+      options: [
+        ["32 threads, executing the same instruction in lockstep (SIMT)", true],
+        ["32 threads, each executing independent instructions", false],
+        ["1024 threads, executing the same instruction", false],
+        ["A variable number chosen by the compiler", false]
+      ],
+      explain: "The warp — 32 threads — is the hardware scheduling unit: one instruction is issued for the whole warp, applied to 32 sets of data (Single Instruction, Multiple Threads). This is why performance analysis happens at warp granularity: divergence, coalescing, and shuffle operations are all defined per warp."
+    },
+    {
+      q: "Half the threads in a warp take the if-branch and half take the else-branch. What happens?",
+      options: [
+        ["The warp executes both paths serially, masking off the inactive threads in each", true],
+        ["The warp splits into two half-warps that run in parallel", false],
+        ["The GPU raises a divergence exception", false],
+        ["Only the if-branch executes; the else threads return zero", false]
+      ],
+      explain: "SIMT hardware issues one instruction per warp, so divergent paths are serialized: the warp runs the if-side with else-threads masked, then the else-side with if-threads masked — roughly the cost of both paths combined. Divergence between different warps costs nothing, so mapping work so warp-mates branch together is a core optimization."
+    },
+    {
+      q: "Which access pattern gives fully coalesced global memory reads for a warp?",
+      options: [
+        ["Thread i reads a[base + i] — consecutive threads, consecutive 4-byte addresses", true],
+        ["Thread i reads a[i * 32] — each thread strides by 32 elements", false],
+        ["All threads read a[random(i)]", false],
+        ["Thread i reads a[31 − i] only if the array is sorted", false]
+      ],
+      explain: "Coalescing merges the warp's accesses into a few wide (e.g. 128-byte) transactions when consecutive threads touch consecutive addresses. Strided access by 32 elements puts every thread in a different memory segment — up to 32 transactions with ~97% of each wasted. This is also why structure-of-arrays beats array-of-structures on GPUs."
+    },
+    {
+      q: "Which threads can share data through shared memory?",
+      options: [
+        ["Only threads within the same thread block", true],
+        ["All threads in the grid", false],
+        ["Only threads within the same warp", false],
+        ["Threads in adjacent blocks", false]
+      ],
+      explain: "Shared memory is a per-block on-chip scratchpad: every thread of the block sees the same allocation, coordinated with __syncthreads(). Different blocks — even on the same SM — get separate allocations and cannot see each other's. Grid-wide sharing must go through global memory."
+    },
+    {
+      q: "What does __syncthreads() synchronize?",
+      options: [
+        ["All threads of the calling thread block — and every thread of the block must reach it", true],
+        ["All threads of the entire grid", false],
+        ["Only the threads of the calling warp", false],
+        ["The host and the device", false]
+      ],
+      explain: "__syncthreads() is a block-level barrier, typically used around shared-memory tiles: write, sync, read. It cannot span blocks. Calling it inside a branch that only some threads of the block take is undefined behavior — the classic symptom is a hang or silently corrupted results."
+    },
+    {
+      q: "32 threads of a warp access a shared-memory array with float val = s[threadIdx.x * 2]. Why is this slow, and what is a standard fix?",
+      options: [
+        ["Stride-2 access causes 2-way bank conflicts; pad the array (e.g. width+1) or change the indexing", true],
+        ["The accesses are uncoalesced; use cudaMemcpy instead", false],
+        ["Shared memory cannot be indexed by threadIdx; use registers", false],
+        ["float loads from shared memory are always slow; use double", false]
+      ],
+      explain: "Shared memory has 32 banks, one 4-byte word wide. Stride-2 indexing maps two threads to each bank, so each request is served in two serialized passes (stride-32 would be a 32-way conflict). Padding rows by one element shifts the mapping so threads land in distinct banks — the standard trick in transpose and tiled kernels. Coalescing is a global-memory concept; it doesn't apply here."
+    },
+    {
+      q: "What is occupancy?",
+      options: [
+        ["The ratio of resident warps on an SM to the hardware maximum it supports", true],
+        ["The percentage of GPU DRAM currently allocated", false],
+        ["The fraction of threads that take the same branch", false],
+        ["The number of kernels queued on a stream", false]
+      ],
+      explain: "Occupancy measures how many warps are simultaneously resident (not how busy the ALUs are). It matters because the SM hides long memory latencies by switching among resident warps — too few, and the SM stalls with nothing to switch to. It is limited by each block's register, shared-memory, and thread-count footprint."
+    },
+    {
+      q: "Your kernel uses many registers per thread and occupancy drops sharply. What is the mechanism?",
+      options: [
+        ["The SM's register file is a fixed pool; high per-thread usage means fewer warps fit residently", true],
+        ["Registers overflow into host memory, adding PCIe traffic", false],
+        ["High register count forces smaller warp sizes", false],
+        ["The compiler disables caching for register-heavy kernels", false]
+      ],
+      explain: "Each SM has a fixed register file (e.g. 64K 32-bit registers) shared by all resident threads. At 255 registers/thread only ~256 threads fit instead of ~2048 — fewer warps to hide latency with. Fixes: restructure the kernel, or cap with launch bounds / maxrregcount, accepting some register spilling to local memory as the tradeoff."
+    },
+    {
+      q: "Why does a GPU need high occupancy (many resident warps) in the first place?",
+      options: [
+        ["The SM hides memory latency by issuing from other warps while one waits ~400+ cycles for DRAM", true],
+        ["More warps increase the clock frequency", false],
+        ["The scheduler requires a minimum warp count to start", false],
+        ["Higher occupancy improves coalescing", false]
+      ],
+      explain: "GPUs hide latency with parallelism instead of the large caches and out-of-order machinery CPUs use: when warp A stalls on a global load, the scheduler issues warp B, C, … at zero switch cost. Enough resident warps keep the pipelines full despite hundreds of cycles of memory latency. Past 'enough', more occupancy stops helping — it is a means, not a score."
+    },
+    {
+      q: "A block reduces 1024 values to one sum using a tree reduction. How many reduction steps does it take?",
+      options: [
+        ["10 — the stride halves each step, log2(1024)", true],
+        ["1023 — each addition is a step", false],
+        ["32 — one per warp", false],
+        ["512 — half the element count", false]
+      ],
+      explain: "Tree reduction halves the active threads each step: 512 adds, then 256, … down to 1, in log2(1024) = 10 steps with a __syncthreads() between steps. The total work is still ~1023 additions, but the depth (serial chain) is logarithmic — that's what parallelism shortens."
+    },
+    {
+      q: "Each block has produced one partial sum in global memory, and you need the grand total. Which approach is correct?",
+      options: [
+        ["Have each block atomicAdd its partial into one result, or run a second kernel over the partials", true],
+        ["Call __syncthreads() so all blocks finish, then let block 0 add them", false],
+        ["Have block 0 spin-wait reading the other blocks' outputs", false],
+        ["Mark the partials volatile and read them from block 0", false]
+      ],
+      explain: "There is no grid-wide barrier inside a kernel: blocks run in any order and may not even be resident together, so __syncthreads() (block-scope only) or spin-waiting on other blocks can deadlock. The safe patterns are one atomicAdd per block — cheap at that granularity — or ending the kernel (an implicit grid-wide sync point) and launching a small second kernel."
+    },
+    {
+      q: "When is constant memory the best choice for kernel input data?",
+      options: [
+        ["When every thread of a warp reads the same address — the value is broadcast in one access", true],
+        ["When each thread reads a different large array element", false],
+        ["When the kernel must write and read the data", false],
+        ["When data exceeds the size of global memory", false]
+      ],
+      explain: "Constant memory is a small cached read-only region optimized for broadcast: a warp reading one uniform address (e.g. filter coefficients, simulation parameters) is served in a single cached access. If threads read different addresses, accesses serialize — worse than plain global loads. It is read-only from kernels and small (typically 64 KB)."
+    },
+    {
+      q: "A kernel does 2 floating-point operations per 12 bytes moved. The roofline model says it is memory-bound. What follows?",
+      options: [
+        ["Only reducing bytes moved (reuse, layout, fewer passes) can speed it up — faster math will not", true],
+        ["Increasing the clock rate of the ALUs will fix it", false],
+        ["Adding more threads will make it compute-bound", false],
+        ["Using double precision will double the throughput", false]
+      ],
+      explain: "With arithmetic intensity of ~0.17 FLOP/byte the kernel hits the memory-bandwidth roof long before the compute roof: the ALUs are idle waiting for data. Wins come from moving fewer bytes — fusing passes, tiling for reuse in shared memory, better layout, smaller data types. This describes SAXPY and most elementwise kernels."
+    },
+    {
+      q: "What does pinning (page-locking) host memory achieve for host↔device copies?",
+      options: [
+        ["The GPU can DMA directly from it — faster copies, and required for async copies that overlap compute", true],
+        ["It compresses the data before sending it over PCIe", false],
+        ["It maps device memory into the host page table", false],
+        ["It doubles the PCIe link width", false]
+      ],
+      explain: "Pageable host memory can be moved by the OS, so the driver must first staging-copy it into a pinned buffer. Allocating pinned memory (cudaMallocHost) skips that extra copy and, crucially, is a requirement for cudaMemcpyAsync to be truly asynchronous — the basis of overlapping transfers with kernel execution using streams."
+    },
+    {
+      q: "You must process 100 batches: copy in, run kernel, copy out. How do you avoid the GPU idling during transfers?",
+      options: [
+        ["Use multiple CUDA streams with async copies so batch k+1 uploads while batch k computes", true],
+        ["Increase the block size so kernels take longer than transfers", false],
+        ["Issue all copies first, then all kernels, on the default stream", false],
+        ["Use larger PCIe packets via driver settings", false]
+      ],
+      explain: "Operations in one stream are ordered, but different streams can overlap: with pinned buffers and cudaMemcpyAsync, the copy engines move batch k+1 up and batch k−1 down while the SMs compute batch k — a software pipeline. Everything on the default stream serializes, so option three changes nothing."
+    },
+    {
+      q: "Why must thread blocks be written so they can execute in any order relative to each other?",
+      options: [
+        ["The hardware schedules blocks onto SMs as resources free up — there is no guaranteed order or concurrency between blocks", true],
+        ["Because blocks share one program counter", false],
+        ["Because the compiler reorders blocks alphabetically", false],
+        ["They don't — launch order is execution order", false]
+      ],
+      explain: "Block independence is the contract that lets one kernel scale from a laptop GPU with 4 SMs to a datacenter GPU with 140: blocks are dispatched whenever an SM has room, in no particular order, possibly never overlapping in time. Code where block 1 waits on block 0's output can deadlock — dependencies between blocks belong at kernel-launch boundaries."
+    },
+    {
+      q: "Host code launches a kernel and immediately reads the output array with a plain CPU pointer loop. Why is the result garbage?",
+      options: [
+        ["Kernel launches are asynchronous and the data is in device memory — you must copy it back (or sync), and cudaMemcpy does both", true],
+        ["The kernel silently failed because it was too large", false],
+        ["CPU code can never read arrays that a kernel has written", false],
+        ["The compiler reordered the launch after the loop", false]
+      ],
+      explain: "Two errors stack here: the launch returns to the CPU immediately (asynchronous), so the kernel may not have even started; and d_y lives in device memory, which host pointers cannot dereference anyway. The standard pattern — cudaMemcpy device-to-host — fixes both, since it waits for prior work on the stream and moves the bytes."
+    },
+    {
+      q: "Your code calls cufftPlan1d() and cufftDestroy() inside a loop that processes 10,000 signal blocks, and profiling shows most time outside cufftExec. What is the fix?",
+      options: [
+        ["Create the plan once before the loop and reuse it — planning is expensive setup, execution is the cheap part", true],
+        ["Switch from complex-to-complex to real-to-complex transforms", false],
+        ["Use a smaller FFT size so planning is faster", false],
+        ["Call cudaDeviceReset() between iterations", false]
+      ],
+      explain: "cuFFT (like FFTW) splits work into expensive planning — algorithm selection, workspace allocation — and cheap execution. Plans are meant to be created once and executed many times; even better, a batched plan (cufftPlanMany) transforms all blocks in one launch. Re-planning per iteration is the classic cuFFT performance bug."
+    },
+    {
+      q: "You want to speed up a whole CUDA application. What is the correct first step?",
+      options: [
+        ["Profile the timeline (e.g. Nsight Systems) to see whether time goes to copies, kernels, or CPU gaps", true],
+        ["Rewrite the biggest kernel to use shared memory", false],
+        ["Raise occupancy of all kernels to 100%", false],
+        ["Switch all math to FP16", false]
+      ],
+      explain: "Optimization starts with attribution, not tuning: if 70% of wall time is PCIe copies or CPU gaps, no kernel change can matter much (Amdahl's law). The timeline profiler classifies the bottleneck — transfer, launch overhead, or one hot kernel — and only then is a kernel-level tool like Nsight Compute worth opening."
+    },
+    {
+      q: "Nsight Compute shows a kernel at 15% of peak memory throughput AND 12% of peak compute throughput. What is the diagnosis?",
+      options: [
+        ["Latency-bound — not enough parallel work in flight; expose more parallelism (more blocks, fewer registers, ILP)", true],
+        ["Memory-bound — reduce bytes moved", false],
+        ["Compute-bound — reduce arithmetic", false],
+        ["The kernel is already optimal", false]
+      ],
+      explain: "Memory-bound means the memory pipe is near peak; compute-bound means the ALU pipes are. When neither is close, the GPU is idle-waiting: too few resident warps, long dependency chains, divergence, or sync overhead. The fix is more concurrent work — more/smaller blocks, lower register pressure, several independent elements per thread — not moving fewer bytes."
+    },
+    {
+      q: "A pipeline runs five elementwise kernels in sequence, each reading and writing the full 1 GB array, and is memory-bound. Best design fix?",
+      options: [
+        ["Fuse the five kernels into one that reads once, applies all five operations, and writes once — ~5× fewer bytes moved", true],
+        ["Increase the block size of each kernel to 1024", false],
+        ["Run the five kernels in five different streams so they overlap", false],
+        ["Enable the L2 cache", false]
+      ],
+      explain: "Memory-bound means time ≈ bytes ÷ bandwidth, so the only real lever is bytes. Fusion cuts traffic from 10 GB (5 reads + 5 writes) to 2 GB. Streams cannot overlap kernels that depend on each other's output, and block size doesn't change bytes moved. Kernel fusion is the single most common memory-bound fix — it is what libraries like cuDNN do internally."
+    },
+    {
+      q: "A kernel reads 400 MB and writes 400 MB in 10 ms on a GPU with 800 GB/s peak bandwidth. What do you conclude?",
+      options: [
+        ["Achieved ~80 GB/s — only 10% of peak, so access patterns or parallelism are broken; big headroom remains", true],
+        ["Achieved 800 GB/s — the kernel is at the roof", false],
+        ["The kernel is compute-bound", false],
+        ["Nothing — bandwidth cannot be computed from these numbers", false]
+      ],
+      explain: "Effective bandwidth = (400 + 400) MB / 10 ms = 80 GB/s, i.e. 10% of the 800 GB/s roof. A well-coalesced memory-bound kernel typically reaches 70–90% of peak, so this one has a pathology: strided/uncoalesced access, low occupancy, or divergence. This two-line calculation is the fastest sanity check in GPU performance work."
+    }
+  ],
+  embedded: [
+    {
+      q: "What does it mean that a peripheral is \"memory-mapped\"?",
+      options: [
+        ["Its control and status registers appear at fixed addresses, so ordinary load/store instructions configure the hardware", true],
+        ["Its driver is stored in a reserved region of flash", false],
+        ["It can only be accessed through DMA", false],
+        ["The peripheral has its own private RAM", false]
+      ],
+      explain: "In memory-mapped I/O, writing a value to, say, 0x4002'0014 sets bits in a GPIO output register — the bus routes that address to the peripheral instead of RAM. The datasheet's register map plus pointer arithmetic is the whole driver interface; vendor headers just wrap those addresses in structs."
+    },
+    {
+      q: "Why must a pointer to a hardware status register be declared volatile in C?",
+      options: [
+        ["The register changes outside program flow, so the compiler must not cache or optimize away reads/writes", true],
+        ["volatile makes the access atomic", false],
+        ["volatile places the variable in flash instead of RAM", false],
+        ["It is only a style convention", false]
+      ],
+      explain: "Without volatile, the optimizer sees while (!(UART->SR & RXNE)); as reading the same location repeatedly, hoists the read out of the loop, and spins forever on a stale value. volatile forces every access to really happen, in order. Note it does not provide atomicity — multi-word data shared with an ISR still needs a critical section."
+    },
+    {
+      q: "Which is the best-practice structure for an interrupt service routine?",
+      options: [
+        ["Read the data, clear the interrupt flag, set a flag or push to a queue, return — defer slow work to the main loop or a task", true],
+        ["Do all message parsing and response inside the ISR so nothing is delayed", false],
+        ["Call printf in the ISR to log the event immediately", false],
+        ["Loop inside the ISR until the next event arrives", false]
+      ],
+      explain: "While an ISR runs, everything at or below its priority is blocked — long ISRs inflate worst-case latency for the whole system. So ISRs do the minimum time-critical work and hand off. printf and blocking calls are notorious ISR bugs (slow, often not reentrant). Also: forgetting to clear the peripheral flag makes the ISR re-enter forever."
+    },
+    {
+      q: "A UART receives data at 1 MB/s. What does using DMA change compared to a per-byte receive interrupt?",
+      options: [
+        ["The DMA engine moves bytes to RAM without the CPU; you get one interrupt per buffer instead of a million per second", true],
+        ["The UART hardware becomes faster", false],
+        ["The data no longer needs a receive buffer", false],
+        ["Interrupts are no longer needed at all", false]
+      ],
+      explain: "Per-byte interrupts at 1 MB/s would consume the entire CPU in ISR entry/exit overhead. DMA transfers each byte peripheral→RAM autonomously and interrupts only on buffer-complete (or half-complete, enabling ping-pong buffering: CPU processes buffer A while DMA fills B). Watch for cache coherency on cached MCUs — the CPU can read stale RAM unless caches are invalidated."
+    },
+    {
+      q: "Two boards must exchange data over exactly two wires with no shared clock line. Which bus fits?",
+      options: [
+        ["UART — asynchronous, both sides agree on a baud rate and resync on each start bit", true],
+        ["SPI — it needs no clock because it is synchronous", false],
+        ["I2C — SDA carries both clock and data", false],
+        ["PWM — data is encoded in the duty cycle", false]
+      ],
+      explain: "UART is the asynchronous option: no clock wire, just TX and RX, with timing recovered from the start bit at a pre-agreed baud rate. SPI needs SCLK plus data lines and chip select; I2C needs both SDA and SCL (clock). This is why UART is the default debug console and inter-board link."
+    },
+    {
+      q: "Which signals make up a standard SPI connection between a master and one slave?",
+      options: [
+        ["SCLK, MOSI, MISO, and chip select (CS)", true],
+        ["SDA and SCL", false],
+        ["TX, RX, and ground only", false],
+        ["One bidirectional data wire and an interrupt line", false]
+      ],
+      explain: "SPI is synchronous full duplex: the master drives the clock (SCLK) and MOSI while the slave answers on MISO during the very same clock edges; CS frames the transaction and selects the device — one CS pin per slave. SDA/SCL is I2C; TX/RX is UART."
+    },
+    {
+      q: "Why does an I2C bus require pull-up resistors on SDA and SCL?",
+      options: [
+        ["The lines are open-drain — devices can only pull low, so resistors must pull the idle bus high", true],
+        ["To limit the current if two masters short the bus", false],
+        ["To increase the maximum bus speed", false],
+        ["Only long cables need them", false]
+      ],
+      explain: "Open-drain outputs let many devices share a wire safely (any device can pull low; none ever drives high against another) and enable clock stretching and multi-master arbitration. The cost: something must return the line to high — the pull-ups. Missing or wrongly sized pull-ups are the #1 'I2C doesn't work' cause; too large makes rising edges too slow at higher speeds."
+    },
+    {
+      q: "A UART link configured for 115200 baud on one end and 9600 on the other will…",
+      options: [
+        ["deliver garbled bytes and framing errors — bits are sampled at the wrong times", true],
+        ["work but 12× slower", false],
+        ["automatically negotiate down to 9600", false],
+        ["fail silently with no data at all", false]
+      ],
+      explain: "UART has no clock and no negotiation: the receiver samples at its own configured baud rate from each start-bit edge. At 12× mismatch the sample points land in the wrong bit cells, yielding garbage bytes, framing errors, or seemingly random characters — the classic symptom that makes you double-check baud, then crystal accuracy."
+    },
+    {
+      q: "To dim an LED using PWM at a fixed frequency, what do you change?",
+      options: [
+        ["The duty cycle — the fraction of each period the output is high", true],
+        ["The supply voltage of the GPIO pin", false],
+        ["The PWM frequency", false],
+        ["The GPIO drive strength register", false]
+      ],
+      explain: "PWM switches the pin fully on/off; the average power — what your eye integrates — is set by the duty cycle: 25% duty ≈ quarter brightness. The frequency just needs to exceed flicker perception (hundreds of Hz or more). Same principle drives motor speed and, with 50 Hz and 1–2 ms pulses, hobby servos."
+    },
+    {
+      q: "A timer runs from a 48 MHz clock with a prescaler of 48. You want an interrupt every 1 ms. What auto-reload (period) value do you need?",
+      options: [
+        ["1000 — the counter ticks at 1 MHz, so 1000 ticks = 1 ms", true],
+        ["48000 — one tick per clock cycle", false],
+        ["48 — matching the prescaler", false],
+        ["1 — the prescaler already gives 1 ms", false]
+      ],
+      explain: "The prescaler divides the input clock: 48 MHz / 48 = 1 MHz, i.e. 1 µs per tick. Counting 1000 ticks gives 1 ms. (Real hardware often wants N−1 in both registers since counting includes zero — the off-by-one every embedded developer hits once.) Prescaler + reload is the standard recipe for tick rates, PWM frequencies, and input-capture timebases."
+    },
+    {
+      q: "What happens if firmware stops \"kicking\" (refreshing) an enabled watchdog timer?",
+      options: [
+        ["The watchdog expires and resets the microcontroller", true],
+        ["The watchdog raises a low-priority interrupt and continues", false],
+        ["Nothing, unless the debugger is attached", false],
+        ["The MCU enters low-power sleep", false]
+      ],
+      explain: "That reset is the entire point: if the code hangs, deadlocks, or runs away, the kick stops arriving and the hardware forces a reboot — the last line of defense for unattended devices. Design matters: kick from a point that proves real health (e.g. all tasks checking in), never from a timer ISR that keeps running while the application is dead."
+    },
+    {
+      q: "A low-priority task holds a mutex needed by a high-priority task, while medium-priority tasks keep the low one from running. What is this, and what is the standard fix?",
+      options: [
+        ["Priority inversion — fixed by priority inheritance, temporarily boosting the mutex holder", true],
+        ["Deadlock — fixed by removing one of the mutexes", false],
+        ["Starvation — fixed by round-robin scheduling", false],
+        ["A race condition — fixed by declaring the data volatile", false]
+      ],
+      explain: "The high-priority task is effectively demoted below the medium ones — the failure that famously rebooted the Mars Pathfinder lander. Priority inheritance raises the mutex holder to the waiter's priority until it releases, so it cannot be preempted by medium tasks. RTOS mutexes typically offer inheritance; plain semaphores do not — one reason to use the right primitive."
+    },
+    {
+      q: "In a preemptive RTOS, an ISR wakes a task with higher priority than the one currently running. What happens?",
+      options: [
+        ["On interrupt exit the scheduler switches immediately to the higher-priority task", true],
+        ["The higher-priority task runs at the next timer tick", false],
+        ["The current task keeps running until it yields voluntarily", false],
+        ["Both tasks time-slice equally from then on", false]
+      ],
+      explain: "Preemption means the highest-priority ready task runs now: the ISR marks the task ready and requests a context switch (e.g. PendSV on Cortex-M), which happens on interrupt return — latency of microseconds, not a tick period. Waiting for a yield is cooperative scheduling; tick-boundary switching would add up to a full tick of jitter."
+    },
+    {
+      q: "A 32-bit counter is incremented in an ISR and read/cleared in the main loop. On a small MCU, how do you make this safe?",
+      options: [
+        ["Access it in a critical section (briefly disable interrupts around the read-modify-write) and declare it volatile", true],
+        ["Declare it volatile — that alone makes the accesses atomic", false],
+        ["Make the ISR lower priority than the main loop", false],
+        ["Read it twice and compare", false]
+      ],
+      explain: "volatile stops the compiler caching the value but does not make read-modify-write atomic: the main loop's load-modify-store can be interrupted mid-sequence, losing an ISR increment (or tearing multi-word data on 8/16-bit cores). The standard pattern is disable interrupts, do the brief access, re-enable — keeping the critical section to a few instructions so latency stays bounded."
+    },
+    {
+      q: "Compared to light sleep, a deep power-down (standby) mode saves far more current. What is the main tradeoff?",
+      options: [
+        ["Much longer wake-up time, and typically loss of RAM contents and peripheral state", true],
+        ["The flash memory wears out faster", false],
+        ["It only works while the debugger is attached", false],
+        ["Interrupt priorities are permanently reduced", false]
+      ],
+      explain: "Deeper modes power off clocks, RAM banks, and regulators: microamps or less, but waking looks like a partial reboot — milliseconds instead of microseconds, restoring state from scratch, with only specific wakeup sources (RTC, wakeup pins) available. Battery firmware is designed around this: sleep deep, wake rarely, do the work fast, go back down."
+    },
+    {
+      q: "Which project most clearly requires a microcontroller rather than a Linux application processor?",
+      options: [
+        ["A motor controller that must respond to encoder edges within 10 µs, deterministically, on a coin-cell budget", true],
+        ["A kiosk with a touchscreen web UI and video playback", false],
+        ["A home NAS serving files over gigabit Ethernet", false],
+        ["A device that transcodes 4K video streams", false]
+      ],
+      explain: "Sub-10 µs deterministic response and microamp idle currents are exactly what MCUs deliver and general-purpose Linux does not — scheduling jitter, page faults, and power floors get in the way. The other three need throughput, big memory, and rich OS stacks: application-processor territory. Many real products pair both, splitting real-time from UI/network."
+    },
+    {
+      q: "What roles do SWD/JTAG play in the firmware build-flash-debug loop?",
+      options: [
+        ["Programming the flash, plus live debugging: halting the core, hardware breakpoints, inspecting registers and memory", true],
+        ["They are serial consoles for printf output", false],
+        ["They provide power to the target board", false],
+        ["They are only used in factory production, not development", false]
+      ],
+      explain: "The loop is: cross-compile and link (the linker script places code in flash, data in RAM) → flash the image over SWD/JTAG → debug through the same probe, which talks directly to the core's debug hardware — so you can halt, step, and inspect even with no working UART. printf-over-UART (or SWO/RTT trace) complements it for timing-sensitive bugs where halting changes behavior."
+    },
+    {
+      q: "Main code does GPIOA->ODR |= (1<<5) while an ISR also writes GPIOA->ODR. Occasionally the ISR's pin change vanishes. Why, and what is the clean fix?",
+      options: [
+        ["The |= is a read-modify-write; the ISR's write lands between read and write and is overwritten. Use the atomic set/reset register (BSRR) instead", true],
+        ["The ISR runs too fast for the pin to settle; add a small delay", false],
+        ["ODR is write-only, so |= reads garbage", false],
+        ["The compiler removed the ISR's write; declare the ISR volatile", false]
+      ],
+      explain: "|= compiles to load, OR, store — three instructions. If the ISR fires between load and store, main's stale copy overwrites the ISR's change. BSRR-style registers make the peripheral do the bit set/clear on a single store, so there is nothing to interleave. The alternative — disabling interrupts around every pin write — works but costs latency everywhere."
+    },
+    {
+      q: "To read register 0x0F from an I2C sensor at address 0x68, the master sends: START, 0x68+W, 0x0F, then…",
+      options: [
+        ["a repeated START, 0x68+R, reads the data, NACKs the last byte, STOP", true],
+        ["a STOP, then a fresh START with 0x68+W again to fetch the data", false],
+        ["nothing — the slave immediately streams the register content", false],
+        ["eight clock pulses with SDA released", false]
+      ],
+      explain: "I2C register reads are two-phase: a write phase to set the register pointer, then a repeated START switching to read mode without releasing the bus (a STOP in between would let another master grab it). The master ACKs each byte it wants more of and NACKs the final one so the slave releases SDA before STOP. Getting this sequence wrong is the most common I2C driver bug after missing pull-ups."
+    },
+    {
+      q: "A logger sends 20,000 bytes/s over a 115200-baud 8N1 UART. Will it keep up?",
+      options: [
+        ["No — 8N1 costs 10 bits per byte, so 115200 baud carries at most ~11,520 bytes/s; the logger will back up or drop data", true],
+        ["Yes — 115200/8 = 14,400 bytes/s… wait, that is still less than 20,000, but flow control fixes it", false],
+        ["Yes — UART hardware compresses idle bits", false],
+        ["Only if parity is enabled", false]
+      ],
+      explain: "Each 8N1 frame is start + 8 data + stop = 10 bits, so throughput is baud/10: ~11.5 kB/s. At 20 kB/s of logging, buffers fill and something gives — blocking (timing changes), dropped messages, or a hard fault from an overflowing queue. Fixes: raise the baud rate, log less, log binary instead of text, or use RTT/SWO which are much faster."
+    },
+    {
+      q: "In circular (ping-pong) DMA reception, what is the half-transfer interrupt for?",
+      options: [
+        ["The CPU processes the first half of the buffer while DMA keeps filling the second half — continuous flow with no data loss", true],
+        ["It warns that the DMA is running at half speed", false],
+        ["It signals a parity error in the first half", false],
+        ["It lets the CPU pause the DMA to avoid overrun", false]
+      ],
+      explain: "With only a transfer-complete interrupt, the CPU would race the DMA as it wraps around and overwrites old data. The half-transfer interrupt creates the ping-pong: work on half A while B fills, then swap. The invariant is that processing one half must take less time than DMA needs to fill the other — if not, data is silently overwritten."
+    },
+    {
+      q: "You need to know how long update_control() takes on a Cortex-M, including its jitter across runs, without stopping the CPU. Best approach?",
+      options: [
+        ["Toggle a GPIO before/after and watch it on a logic analyzer — or read the DWT cycle counter around the call", true],
+        ["Set a breakpoint at entry and exit and use the debugger's stopwatch", false],
+        ["Add printf timestamps inside the function", false],
+        ["Count the C source lines and multiply by the clock period", false]
+      ],
+      explain: "A GPIO toggle costs a few cycles and a logic analyzer shows every invocation — width = duration, spacing = period, and variation = jitter at a glance. The DWT cycle counter gives exact cycle counts in software. Breakpoints halt the core (destroying real-time behavior), and printf inside a control path is often slower than the function being measured."
+    },
+    {
+      q: "A battery sensor node draws 8 mA awake and 2 µA asleep. It wakes for 20 ms every second. What dominates the average current?",
+      options: [
+        ["The awake burst: I_avg ≈ 2 µA + (20/1000)·8 mA ≈ 162 µA — shortening awake time helps most", true],
+        ["The sleep current, because the node sleeps 98% of the time", false],
+        ["Both contribute equally", false],
+        ["The wake-up transition, which uses more than both combined", false]
+      ],
+      explain: "Duty-cycle math: the awake term contributes 0.02 × 8 mA = 160 µA versus 2 µA from sleep — 80× more, even though the node is awake only 2% of the time. So the design lever is shrinking awake time (faster code, DMA, quicker radio handshake) or waking less often; polishing sleep current from 2 µA to 1 µA is nearly invisible. Always do this arithmetic before optimizing."
+    }
+  ]
+};
+
+const state = {};
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function totals() {
+  let answered = 0, correct = 0, total = 0;
+  for (const key of Object.keys(state)) {
+    answered += state[key].answered;
+    correct += state[key].correct;
+    total += state[key].total;
+  }
+  return { answered, correct, total };
+}
+
+function updateScore() {
+  const t = totals();
+  document.getElementById("score-text").textContent = `Score: ${t.correct} / ${t.answered}`;
+  document.getElementById("score-note").textContent =
+    t.answered === t.total
+      ? `Done! ${t.correct} of ${t.total} correct (${Math.round(100 * t.correct / t.total)}%). Retry to reshuffle questions and options.`
+      : `${t.total - t.answered} of ${t.total} questions remaining across 3 sections.`;
+  for (const key of Object.keys(state)) {
+    const s = state[key];
+    const elScore = document.getElementById(`sec-score-${key}`);
+    if (elScore) {
+      elScore.textContent = s.answered === s.total
+        ? `Section score: ${s.correct} / ${s.total} (${Math.round(100 * s.correct / s.total)}%)`
+        : `Section score: ${s.correct} / ${s.answered} — ${s.total - s.answered} left`;
+    }
+  }
+}
+
+function renderQuestion(container, item, number, sectionKey) {
+  const card = el("article", "quiz-card");
+  card.appendChild(el("p", "q", `Q${number}. ${item.q}`));
+  const optionsBox = el("div", "options");
+  const explain = el("div", "explain");
+  explain.appendChild(document.createTextNode(item.explain));
+
+  const buttons = [];
+  for (const [text, isCorrect] of shuffle(item.options)) {
+    const btn = el("button", "", text);
+    btn.type = "button";
+    btn.dataset.correct = isCorrect ? "1" : "0";
+    btn.addEventListener("click", () => {
+      state[sectionKey].answered += 1;
+      if (isCorrect) state[sectionKey].correct += 1;
+      for (const b of buttons) {
+        b.disabled = true;
+        if (b.dataset.correct === "1") b.classList.add("correct");
+      }
+      if (!isCorrect) btn.classList.add("incorrect");
+      const verdict = el("span", "verdict " + (isCorrect ? "good" : "bad"), isCorrect ? "Correct. " : "Incorrect. ");
+      explain.insertBefore(verdict, explain.firstChild);
+      explain.classList.add("show");
+      updateScore();
+    });
+    buttons.push(btn);
+    optionsBox.appendChild(btn);
+  }
+
+  card.appendChild(optionsBox);
+  card.appendChild(explain);
+  container.appendChild(card);
+}
+
+function renderAll() {
+  for (const quizBox of document.querySelectorAll(".quiz")) {
+    const key = quizBox.dataset.section;
+    state[key] = { answered: 0, correct: 0, total: 0 };
+    quizBox.innerHTML = "";
+    const items = shuffle(quizData[key]);
+    items.forEach((item, i) => {
+      state[key].total += 1;
+      renderQuestion(quizBox, item, i + 1, key);
+    });
+  }
+  updateScore();
+}
+
+const toggleBtn = document.getElementById("toggle-explain");
+toggleBtn.addEventListener("click", () => {
+  const on = document.getElementById("main").classList.toggle("show-all");
+  toggleBtn.textContent = on ? "Hide explanations" : "Show all explanations";
+});
+
+document.getElementById("retry").addEventListener("click", renderAll);
+renderAll();
+</script>
+</body>
+</html>

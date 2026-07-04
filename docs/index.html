@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Study hub for systems and hardware assessment preparation: DSP, GPU kernels, and embedded firmware.">
+  <title>Systems &amp; Hardware Study Hub</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Systems &amp; hardware study hub</p>
+      <h1>Assessment Prep Hub</h1>
+    </div>
+    <nav aria-label="Site navigation">
+      <a href="#summary">Summary</a>
+      <a href="#documents">Documents</a>
+      <a href="systems-skills.html">Systems Skills</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="summary" class="section">
+      <div class="intro">
+        <h2>Study Goal</h2>
+        <p>
+          This site collects revision material for software/hardware-engineering assessment work. The focus
+          is three low-level engineering areas: DSP and signal processing, GPU kernel programming, and
+          embedded firmware. Each area pairs a definitions list and core-concept notes with a bank of
+          multiple-choice practice questions and explanations.
+        </p>
+      </div>
+
+      <div class="quick-grid">
+        <article class="mini-card">
+          <span class="status good">Signals</span>
+          <h3>DSP &amp; Signal Processing</h3>
+          <p>Sampling and Nyquist, quantization, convolution, FIR/IIR filters, FFT and windowing, Z-transform, and fixed- vs floating-point.</p>
+        </article>
+        <article class="mini-card">
+          <span class="status good">Parallelism</span>
+          <h3>GPU Kernels</h3>
+          <p>SIMT execution, warps and blocks, the memory hierarchy, coalescing, occupancy, reductions, roofline thinking, CUDA/cuFFT in practice, and bottleneck hunting with profilers.</p>
+        </article>
+        <article class="mini-card">
+          <span class="status good">Hardware</span>
+          <h3>Embedded &amp; Firmware</h3>
+          <p>Memory-mapped registers, interrupts and ISRs, DMA ping-pong, UART/SPI/I2C protocol details, bare metal vs RTOS, watchdog strategy, low-power duty cycling, and firmware profiling.</p>
+        </article>
+        <article class="mini-card">
+          <span class="status warning">Practice format</span>
+          <h3>MCQ Drills</h3>
+          <p>62 questions with explanations, per-section and overall scores, a show-all-explanations toggle, and a reshuffling retry button. Works offline.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="documents" class="section">
+      <h2>Document Library</h2>
+      <p class="section-note">
+        All pages are plain HTML/CSS/JS with no dependencies, served from the <code>docs</code> folder.
+      </p>
+
+      <div class="doc-grid">
+        <a class="doc-link featured" href="systems-skills.html">
+          <strong>Systems &amp; Hardware Skills Revision and MCQ Practice</strong>
+          <span>Definitions, core-concept cards, ASCII diagrams, CUDA-in-practice and bottleneck-hunting guides, embedded deep dives, further-reading links, and 62 practice questions across DSP, GPU kernels, and embedded firmware.</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Last updated: 2026-07-04. Styles shared with the Isaac Sim study hub.</p>
+  </footer>
+</body>
+</html>
