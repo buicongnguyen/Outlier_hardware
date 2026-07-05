@@ -56,6 +56,13 @@
     .anim-controls button:hover { border-color:var(--accent); background:var(--accent-soft); }
     .anim-controls button.playing { background:var(--accent); border-color:var(--accent); color:#ffffff; }
     .anim-counter { margin-left:auto; color:var(--muted); font-size:13px; font-weight:700; }
+    details.qa-card { margin:10px 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); overflow:hidden; }
+    details.qa-card summary { cursor:pointer; padding:13px 15px; font-weight:700; }
+    details.qa-card summary:hover { background:var(--accent-soft); }
+    details.qa-card .qa-tag { display:inline-block; margin-left:8px; padding:2px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent-strong); font-size:11px; font-weight:700; white-space:nowrap; }
+    .qa-body { padding:2px 15px 15px; }
+    .qa-body p { color:var(--muted); margin-bottom:8px; }
+    .qa-body .code-snippet { margin:10px 0; }
     .bar-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .bar-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
     .bar-btn.secondary { background:var(--panel); color:var(--text); border-color:var(--line); }
@@ -75,6 +82,7 @@
       <a href="#dsp">DSP</a>
       <a href="#gpu">GPU Kernels</a>
       <a href="#embedded">Embedded</a>
+      <a href="#coding">Coding Q&amp;A</a>
       <a href="#resources">Resources</a>
     </nav>
   </header>
@@ -740,6 +748,313 @@ image — the old slot is never erased until the new one has proven itself</pre>
       <h3 class="sub" id="embedded-quiz">Practice questions</h3>
       <span class="sec-score" id="sec-score-embedded">Section score: 0 / 0</span>
       <div class="quiz" data-section="embedded"></div>
+    </section>
+
+    <!-- ================= CODING INTERVIEW PRACTICE ================= -->
+    <section id="coding" class="section">
+      <h2>Coding Interview Practice</h2>
+      <p class="section-note">
+        Fourteen write-the-code questions repeatedly reported in real interviews (Glassdoor reports for
+        firmware/DSP roles at companies like Cadence, and NVIDIA-style CUDA screens), each with a worked
+        solution and the talking points interviewers probe. Try each one on paper before opening the answer —
+        the follow-up is usually "now optimize it" or "what breaks it?".
+      </p>
+
+      <h3 class="sub">Bit manipulation &amp; C fundamentals</h3>
+
+      <details class="qa-card">
+        <summary>1. Count the set bits in a 32-bit integer — then optimize it<span class="qa-tag">reported at Cadence</span></summary>
+        <div class="qa-body">
+          <p>The classic warm-up with a built-in follow-up. Start with the loop everyone knows, then show Kernighan's trick, then know what "even faster" means.</p>
+          <pre class="code-snippet">int count_bits(uint32_t x) {          // Kernighan: O(set bits), not O(32)
+    int n = 0;
+    while (x) {
+        x &amp;= x - 1;                   // clears the LOWEST set bit
+        n++;
+    }
+    return n;
+}</pre>
+          <p><strong>Why x &amp;= x−1 works:</strong> subtracting 1 flips the lowest set bit to 0 and all bits below it to 1; ANDing erases exactly that bit. 0b101<u>1</u>00 → 0b101<u>0</u>11 → AND → 0b101000.</p>
+          <p><strong>The "optimize it" follow-up:</strong> a 256-entry lookup table processes a byte at a time (4 loads, no branches); real code uses the hardware instruction via <code>__builtin_popcount(x)</code> (POPCNT/VCNT). Saying "I'd use the builtin in production and here's what it compiles to" is the senior answer.</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>2. Reverse the bits of a 32-bit integer</summary>
+        <div class="qa-body">
+          <p>Loop version first (per-bit, easy to get right under pressure), then the divide-and-conquer version if asked to optimize.</p>
+          <pre class="code-snippet">uint32_t reverse_bits(uint32_t x) {   // O(log n): swap halves, then quarters...
+    x = (x &gt;&gt; 16) | (x &lt;&lt; 16);                            // swap 16-bit halves
+    x = ((x &amp; 0xFF00FF00u) &gt;&gt; 8) | ((x &amp; 0x00FF00FFu) &lt;&lt; 8);   // bytes
+    x = ((x &amp; 0xF0F0F0F0u) &gt;&gt; 4) | ((x &amp; 0x0F0F0F0Fu) &lt;&lt; 4);   // nibbles
+    x = ((x &amp; 0xCCCCCCCCu) &gt;&gt; 2) | ((x &amp; 0x33333333u) &lt;&lt; 2);   // pairs
+    x = ((x &amp; 0xAAAAAAAAu) &gt;&gt; 1) | ((x &amp; 0x55555555u) &lt;&lt; 1);   // single bits
+    return x;
+}</pre>
+          <p><strong>Talking points:</strong> 5 steps instead of 32 iterations; the masks are self-describing in hex (0xAAAA… = alternating bits). The u suffixes matter — shifting a signed int left into the sign bit is undefined behavior. RBIT does this in one instruction on ARM.</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>3. Detect endianness at runtime, and byte-swap a 32-bit value</summary>
+        <div class="qa-body">
+          <p>Standard firmware question because every wire protocol (network order = big-endian) meets a little-endian CPU eventually.</p>
+          <pre class="code-snippet">int is_little_endian(void) {
+    uint32_t x = 1;
+    return *(uint8_t *)&amp;x == 1;       // LE stores the LSB at the LOWEST address
+}
+
+uint32_t bswap32(uint32_t x) {        // 0x11223344 → 0x44332211
+    return  (x &gt;&gt; 24)
+         | ((x &gt;&gt;  8) &amp; 0x0000FF00u)
+         | ((x &lt;&lt;  8) &amp; 0x00FF0000u)
+         |  (x &lt;&lt; 24);
+}</pre>
+          <p><strong>Talking points:</strong> inspecting bytes through a <code>uint8_t*</code> is legal (char types may alias anything); casting to <code>uint32_t*</code> the other way is strict-aliasing UB. Production code uses <code>__builtin_bswap32</code> / <code>htonl</code>. Mention that endianness bugs hide until the struct crosses the wire.</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>4. Write SET / CLEAR / TOGGLE / TEST bit macros — and say what's wrong with using them on registers</summary>
+        <div class="qa-body">
+          <pre class="code-snippet">#define BIT(n)         (1u &lt;&lt; (n))            // 1u, NOT 1: 1 &lt;&lt; 31 is UB
+#define SET_BIT(r, n)  ((r) |=  BIT(n))
+#define CLR_BIT(r, n)  ((r) &amp;= ~BIT(n))
+#define TGL_BIT(r, n)  ((r) ^=  BIT(n))
+#define TST_BIT(r, n)  (((r) &gt;&gt; (n)) &amp; 1u)</pre>
+          <p><strong>The two traps interviewers listen for:</strong> (1) <code>1 &lt;&lt; 31</code> with a signed int is undefined behavior — hence <code>1u</code>; every parameter parenthesized. (2) All three modify macros are read-modify-write: on a hardware register shared with an ISR, the ISR's change can be lost between the read and the write — which is why set/reset registers (BSRR) or a critical section are used instead. Connecting the macro to the RMW race is what separates the levels.</p>
+        </div>
+      </details>
+
+      <h3 class="sub">Embedded firmware patterns</h3>
+
+      <details class="qa-card">
+        <summary>5. Lock-free ring buffer between a UART ISR and the main loop<span class="qa-tag">very frequently asked</span></summary>
+        <div class="qa-body">
+          <p>THE embedded interview data structure. Single producer (ISR) — single consumer (main): it can be safe with no locks at all, if you can say why.</p>
+          <pre class="code-snippet">#define SIZE 256u                       // power of two — enables masking
+static volatile uint8_t  buf[SIZE];
+static volatile uint16_t head;          // written ONLY by the ISR
+static volatile uint16_t tail;          // written ONLY by main
+
+bool rb_put(uint8_t b) {                // ISR side
+    if ((uint16_t)(head - tail) == SIZE) return false;   // full
+    buf[head &amp; (SIZE - 1u)] = b;        // write the data FIRST...
+    head = (uint16_t)(head + 1);        // ...then publish it
+    return true;
+}
+
+bool rb_get(uint8_t *b) {               // main-loop side
+    if (tail == head) return false;     // empty
+    *b = buf[tail &amp; (SIZE - 1u)];
+    tail = (uint16_t)(tail + 1);
+    return true;
+}</pre>
+          <p><strong>Why it's safe with no lock:</strong> each index has exactly one writer, indices are free-running (wrap via unsigned arithmetic, so full = head−tail == SIZE and empty = equal, no wasted slot), and data is written before the index that publishes it. <strong>Follow-ups:</strong> why power-of-two (mask instead of %), what breaks with two producers (RMW on head — now you need a critical section), and on out-of-order CPUs you'd need a memory barrier where the comment says "publish".</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>6. Debounce a button in firmware (no delays allowed)</summary>
+        <div class="qa-body">
+          <p>Mechanical contacts bounce for ~1–10 ms. Blocking <code>delay_ms(20)</code> is the answer that fails the interview; the shift-register sampler is the one that passes.</p>
+          <pre class="code-snippet">// called from a 1 ms timer tick
+bool debounce(bool raw) {
+    static uint8_t hist = 0;
+    static bool stable = false;
+    hist = (uint8_t)((hist &lt;&lt; 1) | (raw ? 1u : 0u));
+    if (hist == 0xFFu) stable = true;      // 8 consecutive 1s → pressed
+    else if (hist == 0x00u) stable = false;// 8 consecutive 0s → released
+    return stable;                          // anything else: keep last state
+}</pre>
+          <p><strong>Talking points:</strong> the 8-bit history is a sliding 8 ms window; bounce shows up as mixed bits and simply doesn't change the state. Zero blocking, one byte of RAM, and the same tick can debounce a whole port in parallel with word-wide shifts. Follow-up: hysteresis is inherent — press and release each need 8 clean samples.</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>7. Implement memmove (memcpy that survives overlap)</summary>
+        <div class="qa-body">
+          <p>Asked to test pointer reasoning: when does forward copying corrupt the data it hasn't read yet?</p>
+          <pre class="code-snippet">void *my_memmove(void *dst, const void *src, size_t n) {
+    uint8_t *d = (uint8_t *)dst;
+    const uint8_t *s = (const uint8_t *)src;
+    if (d &lt; s) {
+        while (n--) *d++ = *s++;        // dst below src: forward is safe
+    } else if (d &gt; s) {
+        d += n; s += n;
+        while (n--) *--d = *--s;        // dst above src: copy BACKWARD
+    }
+    return dst;
+}</pre>
+          <p><strong>The reasoning:</strong> if dst overlaps ahead of src, a forward copy overwrites source bytes before reading them — so copy from the end. <code>memcpy</code> is allowed to assume no overlap (that's why it can be faster); passing overlapping buffers to it is UB that "works" until the libc vectorizes. Follow-up: word-at-a-time copying and alignment handling.</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>8. Byte-stream packet parser as a state machine</summary>
+        <div class="qa-body">
+          <p>Frame format: <code>0xAA | len | payload[len] | checksum</code>. Bytes arrive one at a time (UART). Parse robustly — including garbage and truncated frames.</p>
+          <pre class="code-snippet">#define MAXPL 64
+typedef enum { WAIT_SOF, LEN, DATA, CSUM } state_t;
+
+void parse_byte(uint8_t b) {
+    static state_t st = WAIT_SOF;
+    static uint8_t len, idx, csum, pl[MAXPL];
+    switch (st) {
+    case WAIT_SOF:
+        if (b == 0xAA) st = LEN;                 // hunt for start of frame
+        break;
+    case LEN:
+        len = b; idx = 0; csum = b;
+        st = (len == 0 || len &gt; MAXPL) ? WAIT_SOF   // reject bad length!
+           : DATA;
+        break;
+    case DATA:
+        pl[idx++] = b; csum ^= b;
+        if (idx == len) st = CSUM;
+        break;
+    case CSUM:
+        if (b == csum) handle_frame(pl, len);    // else: drop silently
+        st = WAIT_SOF;                           // resync either way
+        break;
+    }
+}</pre>
+          <p><strong>What they're checking:</strong> byte-at-a-time design (no blocking reads), the length bound check (unchecked <code>len</code> is a buffer overflow — the most common bug in submitted answers), checksum accumulated on the fly, and automatic resync after corruption. Follow-up: what if 0xAA can appear inside the payload? (Escape sequences or checksum-validated resync.)</p>
+        </div>
+      </details>
+
+      <h3 class="sub">DSP in C</h3>
+
+      <details class="qa-card">
+        <summary>9. Implement an FIR filter in C<span class="qa-tag">reported at Cadence</span></summary>
+        <div class="qa-body">
+          <p>The literal Glassdoor-reported question for DSP roles. The naive version shifts the whole history every sample; the expected version uses a circular buffer.</p>
+          <pre class="code-snippet">#define NTAPS 8
+static const float h[NTAPS] = { /* coefficients */ };
+static float xhist[NTAPS];             // history of inputs
+static int   pos;                      // circular write index
+
+float fir(float in) {
+    xhist[pos] = in;                   // overwrite the oldest sample
+    float acc = 0.0f;
+    int j = pos;
+    for (int k = 0; k &lt; NTAPS; k++) {  // h[0]·newest ... h[N-1]·oldest
+        acc += h[k] * xhist[j];
+        j = (j == 0) ? NTAPS - 1 : j - 1;
+    }
+    pos = (pos + 1 == NTAPS) ? 0 : pos + 1;
+    return acc;
+}</pre>
+          <p><strong>The follow-up is always "optimize it":</strong> power-of-two NTAPS turns the wraps into <code>&amp; (NTAPS−1)</code>; symmetric (linear-phase) taps halve the multiplies (h[k] = h[N−1−k] → add the sample pair first); DSP cores do the whole tap in one cycle with dual-MAC and circular addressing hardware; and in fixed point the accumulator needs guard bits (this connects to the Q15 question above).</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>10. Moving-average filter with O(1) update</summary>
+        <div class="qa-body">
+          <p>Trap version: "average the last N samples" — the naive answer re-sums N values every sample. The running-sum answer is one add, one subtract.</p>
+          <pre class="code-snippet">#define N 16u                          // power of two
+static uint16_t win[N];
+static uint32_t sum;                   // MUST hold N × max sample!
+static unsigned idx;
+
+uint16_t moving_avg(uint16_t in) {
+    sum -= win[idx];                   // retire the oldest sample
+    win[idx] = in;
+    sum += in;                         // admit the newest
+    idx = (idx + 1) &amp; (N - 1u);
+    return (uint16_t)(sum &gt;&gt; 4);       // /16 — shift, not divide
+}</pre>
+          <p><strong>Talking points:</strong> O(1) vs O(N) per sample; the accumulator sizing (16 × 65535 needs 20 bits — a uint16_t sum overflows silently); integer running sums are exact, so no float drift. Bonus points for naming the frequency-domain view: this is an FIR with rectangular taps — cheap but with poor stopband (first sidelobe −13 dB), and cascading it (CIC) is how decimators fix that.</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>11. Sine-wave generator with a lookup table (DDS / phase accumulator)</summary>
+        <div class="qa-body">
+          <p>Standard audio/comms firmware question: generate a sine at an arbitrary frequency with no floating point in the sample loop.</p>
+          <pre class="code-snippet">static const int16_t sine_lut[256] = { /* one full cycle, Q15 */ };
+static uint32_t phase;                 // 32-bit phase accumulator
+static uint32_t step;                  // phase increment per sample
+
+void set_freq(float f, float fs) {
+    step = (uint32_t)(f / fs * 4294967296.0f);   // f/fs × 2^32 (setup only)
+}
+
+int16_t next_sample(void) {
+    phase += step;                     // wraps at 2^32 = one full cycle, free
+    return sine_lut[phase &gt;&gt; 24];      // top 8 bits index the 256-entry table
+}</pre>
+          <p><strong>Why it's elegant:</strong> the accumulator overflow IS the phase wrap — no modulo, no drift, and frequency resolution is fs/2³² (~0.01 Hz at 48 kHz). Follow-ups: output quality is limited by the 256-step quantization (interpolate between adjacent entries for ~+30 dB), a quarter-wave table saves 4× ROM using symmetry, and two accumulators 90° apart give sin+cos for I/Q mixing.</p>
+        </div>
+      </details>
+
+      <h3 class="sub">CUDA kernels</h3>
+
+      <details class="qa-card">
+        <summary>12. Write a vector-add kernel and its launch<span class="qa-tag">the NVIDIA screener</span></summary>
+        <div class="qa-body">
+          <p>The canonical CUDA opener. Correctness is assumed; the interview is in the details you mention unprompted.</p>
+          <pre class="code-snippet">__global__ void vadd(int n, const float *a, const float *b, float *c) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i &lt; n) c[i] = a[i] + b[i];             // guard the tail
+}
+
+// launch: ceiling division covers every element
+vadd&lt;&lt;&lt;(n + 255) / 256, 256&gt;&gt;&gt;(n, d_a, d_b, d_c);
+
+// grid-stride version: fixed grid handles ANY n, and re-uses threads
+__global__ void vadd_gs(int n, const float *a, const float *b, float *c) {
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i &lt; n;
+         i += gridDim.x * blockDim.x)
+        c[i] = a[i] + b[i];
+}</pre>
+          <p><strong>Say these before being asked:</strong> the guard (grid is rounded up), consecutive threads → consecutive addresses (coalesced by construction), the kernel is memory-bound (arithmetic intensity ~1 FLOP per 12 bytes — so tuning math is pointless), and the grid-stride form decouples grid size from data size (also the wave-quantization fix).</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>13. Parallel reduction (sum) — "how would you realize it?"<span class="qa-tag">reported in NVIDIA interviews</span></summary>
+        <div class="qa-body">
+          <pre class="code-snippet">__global__ void reduce_sum(const float *x, float *total, int n) {
+    __shared__ float s[256];
+    int tid = threadIdx.x;
+    int gid = blockIdx.x * blockDim.x + tid;
+    s[tid] = (gid &lt; n) ? x[gid] : 0.0f;        // pad the tail with zeros
+    __syncthreads();
+
+    for (int stride = blockDim.x / 2; stride &gt; 0; stride &gt;&gt;= 1) {
+        if (tid &lt; stride)
+            s[tid] += s[tid + stride];
+        __syncthreads();                        // OUTSIDE the if — always
+    }
+    if (tid == 0) atomicAdd(total, s[0]);       // combine block partials
+}</pre>
+          <p><strong>The three things they probe:</strong> barrier placement (inside the branch = deadlock — the classic filter), how blocks combine (no grid-wide barrier → atomicAdd or a second kernel), and the follow-up ladder: sequential addressing avoids bank conflicts, warp-shuffle (<code>__shfl_down_sync</code>) does the last 32 without shared memory, and float atomics make the result non-bit-reproducible (order varies run to run).</p>
+        </div>
+      </details>
+
+      <details class="qa-card">
+        <summary>14. Matrix transpose with coalesced reads AND writes</summary>
+        <div class="qa-body">
+          <p>The classic memory-optimization exercise: naive transpose coalesces reads but scatters writes (or vice versa). The fix stages a tile in shared memory.</p>
+          <pre class="code-snippet">__global__ void transpose(float *out, const float *in, int w, int h) {
+    __shared__ float tile[32][33];             // 33: +1 pad kills bank conflicts
+    int x = blockIdx.x * 32 + threadIdx.x;
+    int y = blockIdx.y * 32 + threadIdx.y;
+    if (x &lt; w &amp;&amp; y &lt; h)
+        tile[threadIdx.y][threadIdx.x] = in[y * w + x];   // coalesced read
+    __syncthreads();
+
+    x = blockIdx.y * 32 + threadIdx.x;         // swap BLOCK coordinates,
+    y = blockIdx.x * 32 + threadIdx.y;         // keep thread coords straight
+    if (x &lt; h &amp;&amp; y &lt; w)
+        out[y * h + x] = tile[threadIdx.x][threadIdx.y];  // coalesced write
+}</pre>
+          <p><strong>The two ideas:</strong> the transpose happens inside shared memory (cheap), so both global accesses stay row-contiguous and coalesced; and the [32][33] padding shifts each row by one bank so the column read <code>tile[threadIdx.x][…]</code> hits 32 different banks instead of one (a 32-way conflict without it). Measured impact of the pad alone is typically ~2× — a favorite "why is this line here?" question.</p>
+        </div>
+      </details>
     </section>
 
     <!-- ================= RESOURCES ================= -->
