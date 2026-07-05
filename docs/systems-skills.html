@@ -46,6 +46,8 @@
     .check-btn:hover:enabled { background:var(--accent-strong); border-color:var(--accent-strong); }
     .check-btn:disabled { opacity:0.5; cursor:default; }
     .qtype-tag { display:inline-block; margin-left:8px; padding:2px 9px; border-radius:999px; background:var(--warn-soft); color:var(--warn); font-size:11px; font-weight:700; vertical-align:2px; white-space:nowrap; }
+    .code-snippet { margin:0 0 10px; padding:12px 14px; background:var(--bg); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.5; overflow-x:auto; white-space:pre; color:var(--text); }
+    .options.mono button { font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.5; white-space:pre-wrap; }
     .bar-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .bar-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
     .bar-btn.secondary { background:var(--panel); color:var(--text); border-color:var(--line); }
@@ -78,8 +80,9 @@
         Each section has a definitions list, core-concept cards with tradeoffs and pitfalls, ASCII diagrams
         where a picture helps, further-reading links, and a bank of multiple-choice questions with
         explanations. Difficulty runs from recall up to senior/principal-level scenario questions (tagged
-        "senior" — war-story debugging and design-tradeoff judgment), in three formats: single-answer,
-        select-all-that-apply (the whole set must match), and click-the-steps-in-order design chains.
+        "senior" — war-story debugging and design-tradeoff judgment), in four formats: single-answer,
+        select-all-that-apply (the whole set must match), click-the-steps-in-order design chains, and
+        complete-the-code (pick the line that belongs at the marked insertion point).
       </p>
     </section>
 
@@ -830,6 +833,43 @@ const quizData = {
         ["Raise the sample rate to give the algorithms more data to work with", false]
       ],
       explain: "The multirate mantra is 'decimate early, interpolate late' — work done at 48 kHz that could happen at 8 kHz is a 6× tax on every downstream stage. Per-sample interrupts burn a large fixed overhead 48,000 times a second; block processing amortizes it. The double-precision option is a trap: the M4F's FPU is single-precision only, so doubles fall back to software emulation and get dramatically slower — a hardware detail a senior embedded-DSP engineer is expected to know."
+    },
+    {
+      type: "code",
+      q: "Complete the inner loop of this N-tap FIR filter computing one output sample.",
+      code: "// x[] = input history, h[] = coefficients, N taps\nfloat acc = 0.0f;\nfor (int k = 0; k < N; k++) {\n    /* >>> INSERT LINE HERE <<< */\n}\ny[n] = acc;",
+      options: [
+        ["acc += h[k] * x[n - k];", true],
+        ["acc += h[k] * x[n + k];", false],
+        ["acc  = h[k] * x[n - k];", false],
+        ["acc += h[k] + x[n - k];", false]
+      ],
+      explain: "Convolution is y[n] = Σ h[k]·x[n−k]: coefficient k multiplies the input from k samples AGO — the kernel slides over the past. x[n + k] reads future samples (non-causal: impossible in real time), '=' throws away the accumulation and keeps only the last tap, and '+' isn't a multiply-accumulate at all. This one loop — and its indexing direction — is the heart of every FIR implementation and of DSP MAC hardware."
+    },
+    {
+      type: "code",
+      hard: true,
+      q: "Complete the fixed-point multiply of two Q15 samples so the result is again Q15.",
+      code: "int16_t a;   // Q15\nint16_t b;   // Q15\n/* >>> INSERT LINE HERE <<< */",
+      options: [
+        ["int16_t y = (int16_t)(((int32_t)a * (int32_t)b) >> 15);", true],
+        ["int16_t y = (int16_t)(a * b);", false],
+        ["int16_t y = (int16_t)(((int32_t)a * (int32_t)b) >> 16);", false],
+        ["int16_t y = (int16_t)(((int32_t)a * (int32_t)b) << 15);", false]
+      ],
+      explain: "Q15 × Q15 gives a Q30 product (30 fractional bits), which needs a 32-bit intermediate and a right shift by 15 to land back in Q15. No shift keeps the raw low bits of a Q30 number — garbage scale; >>16 loses a factor of 2 (it produces Q14 interpreted as Q15); <<15 overflows immediately. The remaining refinements a production version adds: rounding before the shift, saturation, and the one poisonous edge case (−1.0 × −1.0 = +1.0, which Q15 cannot represent)."
+    },
+    {
+      type: "code",
+      q: "Complete the conversion from FFT peak bin to frequency in Hz.",
+      code: "// N-point FFT of a signal sampled at fs\nint k = index_of_max_magnitude(X, N/2);   // search bins 0..N/2\n/* >>> INSERT LINE HERE <<< */",
+      options: [
+        ["float freq = (float)k * fs / N;", true],
+        ["float freq = (float)k * N / fs;", false],
+        ["float freq = fs / (float)k;", false],
+        ["float freq = (float)k * fs / (N / 2);", false]
+      ],
+      explain: "Bin spacing is fs/N — bin k sits at k·fs/N Hz. The search stops at N/2 because that bin is the Nyquist frequency fs/2 (the upper half of the FFT mirrors the lower for real inputs), but the SPACING is still fs/N, so dividing by N/2 doubles every reading. Getting this one line wrong produces beautifully confident, exactly-wrong-by-2× frequency reports — a bug that has shipped more than once."
     }
   ],
   gpu: [
@@ -1158,6 +1198,43 @@ const quizData = {
         ["CUDA events can only be used for timing, not for cross-stream dependencies", false]
       ],
       explain: "Streams are ordering contracts, not performance guarantees: overlap needs free resources. The legacy default stream is the classic silent serializer — a stray unstreamed cudaMemcpy fences everything (fixable with per-thread default streams or non-blocking stream flags). cudaStreamSynchronize blocks only the calling host thread on that one stream, and cudaEventRecord + cudaStreamWaitEvent is precisely how you build cross-stream dependency graphs. Misreading any of these turns a 'concurrent' pipeline into a sequential one that still looks correct."
+    },
+    {
+      type: "code",
+      q: "Complete the standard global-index computation so each thread owns one element.",
+      code: "__global__ void scale(int n, float a, float *x) {\n    /* >>> INSERT LINE HERE <<< */\n    if (i < n) x[i] *= a;\n}",
+      options: [
+        ["int i = blockIdx.x * blockDim.x + threadIdx.x;", true],
+        ["int i = threadIdx.x * blockDim.x + blockIdx.x;", false],
+        ["int i = blockIdx.x + threadIdx.x;", false],
+        ["int i = threadIdx.x;", false]
+      ],
+      explain: "Each block covers a contiguous slab of blockDim.x elements, so the block offset is blockIdx.x·blockDim.x, plus this thread's position inside the block. The swapped version scatters and duplicates indices; blockIdx + threadIdx makes neighboring blocks overlap almost entirely; bare threadIdx.x makes every block redo the same first slab. Bonus property of the correct form: consecutive threads get consecutive addresses — the coalescing-friendly pattern by construction."
+    },
+    {
+      type: "code",
+      hard: true,
+      q: "Complete the loop body of this shared-memory tree reduction so it is CORRECT for all 256 threads of the block.",
+      code: "__shared__ float s[256];\ns[tid] = x[gid];\n__syncthreads();\nfor (int stride = 128; stride > 0; stride >>= 1) {\n    /* >>> INSERT CODE HERE <<< */\n}\nif (tid == 0) out[blockIdx.x] = s[0];",
+      options: [
+        ["if (tid < stride) s[tid] += s[tid + stride];\n__syncthreads();", true],
+        ["if (tid < stride) {\n    s[tid] += s[tid + stride];\n    __syncthreads();\n}", false],
+        ["if (tid < stride) s[tid] += s[tid + stride];", false],
+        ["s[tid] += s[tid + stride];\n__syncthreads();", false]
+      ],
+      explain: "Two constraints collide here: only the first `stride` threads may add (or the reads race with the writes they depend on — and s[tid+stride] runs off the live data), yet __syncthreads() must be reached by EVERY thread of the block. So the guard wraps the add, and the barrier sits outside it. Barrier inside the if = divergent barrier = deadlock or corruption (undefined behavior); no barrier = iteration k+1 reads values iteration k hasn't finished writing. This exact placement question is the classic CUDA interview filter."
+    },
+    {
+      type: "code",
+      q: "Complete the grid-size computation so the kernel covers all n elements even when n is not a multiple of the block size.",
+      code: "int n = 1000000;\nint block = 256;\n/* >>> INSERT LINE HERE <<< */\nscale<<<grid, block>>>(n, 2.0f, d_x);",
+      options: [
+        ["int grid = (n + block - 1) / block;", true],
+        ["int grid = n / block;", false],
+        ["int grid = n * block;", false],
+        ["int grid = block / n;", false]
+      ],
+      explain: "Integer division truncates, so n/block silently drops the tail: 1,000,000/256 = 3906 blocks covering only 999,936 elements — the last 64 are never touched, and nothing crashes to tell you. Adding block−1 first turns truncation into ceiling division (3907 blocks). The pattern always travels with its partner, the `if (i < n)` guard inside the kernel, which idles the surplus threads of the final block."
     }
   ],
   embedded: [
@@ -1495,6 +1572,44 @@ const quizData = {
         ["Skip image verification when the download link is TLS, since transport encryption already guarantees integrity", false]
       ],
       explain: "The design invariant is: power can fail at ANY instant and the device must still boot something. Erasing the running image violates it outright. TLS protects bytes in transit but not against truncated downloads, flash write errors, or a malicious server with valid TLS — the image itself must be signed and verified at rest. And a verified image can still brick the product functionally (boot loop, broken radio), which is what the provisional-boot + automatic-rollback state machine catches. Update mechanisms are judged by their worst day, not their best."
+    },
+    {
+      type: "code",
+      q: "Complete the declaration of a flag that a UART ISR sets and the main loop polls.",
+      code: "/* >>> INSERT LINE HERE <<< */\n\nvoid UART_IRQHandler(void) {\n    rx_byte = UART->DR;\n    data_ready = true;\n}\n\nint main(void) {\n    for (;;) {\n        if (data_ready) { data_ready = false; process(rx_byte); }\n    }\n}",
+      options: [
+        ["volatile bool data_ready = false;", true],
+        ["bool data_ready = false;", false],
+        ["static bool data_ready = false;", false],
+        ["const bool data_ready = false;", false]
+      ],
+      explain: "Without volatile, the compiler may prove that nothing inside the loop writes data_ready, hoist the read into a register, and spin on that stale copy forever — typically appearing only in the optimized release build, which is what makes it infamous. static only changes linkage (the caching problem remains) and const promises it never changes at all. Note what volatile does NOT provide: atomicity — for multi-byte shared data you still need a critical section on top."
+    },
+    {
+      type: "code",
+      hard: true,
+      q: "Complete the body so the tick counter shared with the SysTick ISR is read and cleared without losing ticks.",
+      code: "volatile uint32_t ms_ticks;   // ms_ticks++ in SysTick ISR\n\nuint32_t read_and_clear_ticks(void) {\n    uint32_t t;\n    /* >>> INSERT CODE HERE <<< */\n    return t;\n}",
+      options: [
+        ["__disable_irq();\nt = ms_ticks;\nms_ticks = 0;\n__enable_irq();", true],
+        ["t = ms_ticks;\nms_ticks = 0;", false],
+        ["ms_ticks = 0;\nt = ms_ticks;", false],
+        ["t = ms_ticks;\nwhile (t != ms_ticks) t = ms_ticks;\nms_ticks = 0;", false]
+      ],
+      explain: "Read-then-clear is a two-step read-modify-write on data an ISR mutates: if SysTick fires between `t = ms_ticks` and `ms_ticks = 0`, that tick is counted into neither t nor the next round — silently lost, and volatile does nothing to prevent it. The critical section makes the pair atomic and is only a few cycles long, so latency impact is negligible. Clear-then-read always returns 0, and the double-read loop only stabilizes the read — the clear underneath it races exactly the same."
+    },
+    {
+      type: "code",
+      hard: true,
+      q: "Complete the timer setup for a 1 kHz periodic interrupt from a 48 MHz timer clock. (The hardware divides by PSC+1 and counts ARR+1 ticks per update.)",
+      code: "// goal: update interrupt every 1 ms  (48 MHz timer clock)\n/* >>> INSERT CODE HERE <<< */\nTIM->DIER |= TIM_DIER_UIE;    // enable update interrupt\nTIM->CR1  |= TIM_CR1_CEN;     // start counting",
+      options: [
+        ["TIM->PSC = 48 - 1;      // 1 MHz tick (1 us)\nTIM->ARR = 1000 - 1;    // 1000 ticks = 1 ms", true],
+        ["TIM->PSC = 48;\nTIM->ARR = 1000;", false],
+        ["TIM->PSC = 48000 - 1;\nTIM->ARR = 1000 - 1;", false],
+        ["TIM->PSC = 48 - 1;\nTIM->ARR = 1 - 1;", false]
+      ],
+      explain: "Rate = 48 MHz / ((PSC+1) × (ARR+1)); the N−1 convention exists because hardware counts from 0. PSC=47, ARR=999 gives 48e6/(48×1000) = exactly 1 kHz. Without the −1 you divide by 49×1001 — about 2.2% slow, the kind of error that passes a glance at the scope and then ruins a control loop or a timestamp log. PSC=47999 makes a 1 ms tick, so 1000 of them fire once per second (1 Hz), and ARR=0 interrupts on every 1 µs tick — a 1 MHz interrupt storm that starves the whole system."
     }
   ]
 };
@@ -1548,6 +1663,7 @@ function updateScore() {
 function renderQuestion(container, item, number, sectionKey) {
   if (item.type === "multi") return renderMulti(container, item, number, sectionKey);
   if (item.type === "order") return renderOrder(container, item, number, sectionKey);
+  if (item.type === "code") return renderCode(container, item, number, sectionKey);
   const card = el("article", "quiz-card");
   const qTitle = el("p", "q", `Q${number}. ${item.q}`);
   if (item.hard) qTitle.appendChild(el("span", "qtype-tag", "senior"));
@@ -1690,6 +1806,44 @@ function renderOrder(container, item, number, sectionKey) {
 
   card.appendChild(optionsBox);
   card.appendChild(check);
+  card.appendChild(explain);
+  container.appendChild(card);
+}
+
+function renderCode(container, item, number, sectionKey) {
+  const card = el("article", "quiz-card");
+  const title = el("p", "q", `Q${number}. ${item.q}`);
+  title.appendChild(el("span", "qtype-tag", "complete the code"));
+  if (item.hard) title.appendChild(el("span", "qtype-tag", "senior"));
+  card.appendChild(title);
+  card.appendChild(el("pre", "code-snippet", item.code));
+  const optionsBox = el("div", "options mono");
+  const explain = el("div", "explain");
+  explain.appendChild(document.createTextNode(item.explain));
+
+  const buttons = [];
+  for (const [text, isCorrect] of shuffle(item.options)) {
+    const btn = el("button", "", text);
+    btn.type = "button";
+    btn.dataset.correct = isCorrect ? "1" : "0";
+    btn.addEventListener("click", () => {
+      state[sectionKey].answered += 1;
+      if (isCorrect) state[sectionKey].correct += 1;
+      for (const b of buttons) {
+        b.disabled = true;
+        if (b.dataset.correct === "1") b.classList.add("correct");
+      }
+      if (!isCorrect) btn.classList.add("incorrect");
+      const verdict = el("span", "verdict " + (isCorrect ? "good" : "bad"), isCorrect ? "Correct. " : "Incorrect. ");
+      explain.insertBefore(verdict, explain.firstChild);
+      explain.classList.add("show");
+      updateScore();
+    });
+    buttons.push(btn);
+    optionsBox.appendChild(btn);
+  }
+
+  card.appendChild(optionsBox);
   card.appendChild(explain);
   container.appendChild(card);
 }
