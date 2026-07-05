@@ -209,6 +209,24 @@ WRONG: drop samples first
           /     \
   b ────●─────────●──── B = a − W·b      N = 1024:  ~5k vs ~1M  (≈200× less)</pre>
 
+      <p class="diagram-title">Pole-zero map — reading stability off the z-plane</p>
+      <pre class="diagram">H(z) = B(z)/A(z)      ○ = zero (root of B)      × = pole (root of A)
+
+                 Im │
+              ..────┼────..     unit circle |z| = 1
+            ╱       │      ╲    angle = frequency:  0 = DC,  π = Nyquist
+          │    ○    │   ×   │
+   ───────┼────────┼───────┼──── Re
+          │        │    ×──┼───── pole NEAR the circle: sharp resonance,
+            ╲      │      ╱      long ringing, high gain — and quantizing
+              ``────┼────``       the coefficients can nudge it OUTSIDE
+                   │                → the filter that was fine in double
+                                      precision oscillates in 16-bit fixed point
+
+STABLE  = every pole strictly INSIDE the circle (impulse response decays)
+pole ON the circle  → oscillator (marginal);  outside → output blows up
+zeros may sit anywhere — a zero ON the circle is a perfect notch there</pre>
+
       <div class="link-list">
         <a href="https://www.dspguide.com/" target="_blank" rel="noopener">The Scientist &amp; Engineer's Guide to DSP (free book)</a>
         <a href="https://ccrma.stanford.edu/~jos/mdft/" target="_blank" rel="noopener">Mathematics of the DFT — J. O. Smith</a>
@@ -311,6 +329,39 @@ stride 2:  (17+9) (5+7)                           __syncthreads()
 stride 1:  (26+12) = 38                           log2(8) = 3 steps, not 7
 
 then: one atomicAdd per block, or a second kernel over per-block partials</pre>
+
+      <p class="diagram-title">Latency hiding — the warp scheduler's timeline</p>
+      <pre class="diagram">one SM, 4 resident warps, each issues a ~400-cycle global load
+
+W0:  ██░░░░░░░░░░░░██          ██ = executing    ░░ = stalled on memory
+W1:    ██░░░░░░░░░░░░██        every cycle the scheduler issues from
+W2:      ██░░░░░░░░░░░░██      whichever resident warp is READY —
+W3:        ██░░░░░░░░░░░░██    zero-cost switch, state stays in registers
+SM:  ▓▓▓▓▓▓▓▓░░░░░░▓▓▓▓▓▓     ← with only 4 warps, gaps remain: SM idles
+
+with ~16+ resident warps the stalls interleave completely — the SM never
+waits, and the memory latency is effectively invisible.  That is occupancy's
+one job.  The catch: more warps = fewer registers and less cache per thread,
+so past "enough to hide latency" extra occupancy can make kernels SLOWER.
+Occupancy is a means, not a score — measure, don't maximize.</pre>
+
+      <p class="diagram-title">Roofline — which wall is your kernel hitting?</p>
+      <pre class="diagram">attainable                              compute roof (peak FLOP/s)
+GFLOP/s   │                 ┌─────────────────────────────
+(log)     │                ╱: ridge: AI = peak FLOPs / peak bytes/s
+          │  memory-      ╱ :
+          │  bound       ╱  :    ▲ GEMM, tiled — reuses each element
+          │  roof:      ╱   :      O(N) times → compute-bound
+          │  slope =   ╱ ▲ FFT — O(log N) reuse, near the ridge
+          │  peak     ╱
+          │  bytes/s ╱▲ SAXPY — 2 FLOPs / 12 bytes = 0.17 AI:
+          │         ╱   pinned to the memory roof
+          └────────┴────:───────────▶  arithmetic intensity (FLOPs/byte, log)
+
+left of the ridge: math tuning is pointless — only moving fewer bytes helps
+(fuse kernels, tile into shared memory, recompute instead of reload).
+right of it: optimize the arithmetic.  PCIe sits far BELOW both roofs —
+which is why the pipeline stays on the device.</pre>
 
       <h3 class="sub">CUDA in practice — running real work (FFT example)</h3>
       <div class="term-grid">
