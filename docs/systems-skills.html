@@ -48,6 +48,14 @@
     .qtype-tag { display:inline-block; margin-left:8px; padding:2px 9px; border-radius:999px; background:var(--warn-soft); color:var(--warn); font-size:11px; font-weight:700; vertical-align:2px; white-space:nowrap; }
     .code-snippet { margin:0 0 10px; padding:12px 14px; background:var(--bg); border:1px solid var(--line); border-radius:8px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.5; overflow-x:auto; white-space:pre; color:var(--text); }
     .options.mono button { font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.5; white-space:pre-wrap; }
+    .anim-box { margin:14px 0 0; border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow); overflow:hidden; }
+    .anim-box pre { margin:0; padding:14px 16px; font-family:Consolas,Menlo,monospace; font-size:13px; line-height:1.45; overflow-x:auto; color:var(--text); }
+    .anim-note { margin:0; padding:10px 16px; border-top:1px solid var(--line); background:var(--accent-soft); color:var(--text); font-size:14px; min-height:58px; }
+    .anim-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 14px; border-top:1px solid var(--line); }
+    .anim-controls button { min-height:34px; padding:5px 14px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font-weight:700; font-size:14px; cursor:pointer; }
+    .anim-controls button:hover { border-color:var(--accent); background:var(--accent-soft); }
+    .anim-controls button.playing { background:var(--accent); border-color:var(--accent); color:#ffffff; }
+    .anim-counter { margin-left:auto; color:var(--muted); font-size:13px; font-weight:700; }
     .bar-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .bar-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
     .bar-btn.secondary { background:var(--panel); color:var(--text); border-color:var(--line); }
@@ -165,6 +173,9 @@
 
 symmetric taps (h0 = h3, h1 = h2)  =&gt;  exactly linear phase,
 constant group delay of (N−1)/2 samples</pre>
+
+      <p class="diagram-title">Animated — FIR convolution, the kernel sliding over the signal</p>
+      <div class="anim-box" data-anim="fir"></div>
 
       <p class="diagram-title">IIR biquad — data flow with the feedback loop that creates the poles</p>
       <pre class="diagram">feed-forward part (zeros)             feedback part (poles!)
@@ -329,6 +340,9 @@ stride 2:  (17+9) (5+7)                           __syncthreads()
 stride 1:  (26+12) = 38                           log2(8) = 3 steps, not 7
 
 then: one atomicAdd per block, or a second kernel over per-block partials</pre>
+
+      <p class="diagram-title">Animated — tree reduction, step by step</p>
+      <div class="anim-box" data-anim="reduction"></div>
 
       <p class="diagram-title">Latency hiding — the warp scheduler's timeline</p>
       <pre class="diagram">one SM, 4 resident warps, each issues a ~400-cycle global load
@@ -639,6 +653,9 @@ main()
 until .data/.bss are set up, C globals are garbage — this is why that
 work happens in startup code, before a single line of main() runs</pre>
 
+      <p class="diagram-title">Animated — stack &amp; heap in action (push, pop, malloc, overflow)</p>
+      <div class="anim-box" data-anim="stackheap"></div>
+
       <p class="diagram-title">The read-modify-write race — and the atomic fix</p>
       <pre class="diagram">the race:                                the hardware-assisted fix:
 
@@ -674,6 +691,9 @@ DMA wraps:    [ half A ░░░░░░░░ ][ half B ███████�
 
 CPU always works one half behind the DMA — zero per-byte interrupts,
 no data loss while processing a half is faster than filling one</pre>
+
+      <p class="diagram-title">Animated — DMA ping-pong, DMA and CPU working in parallel</p>
+      <div class="anim-box" data-anim="dma"></div>
 
       <p class="diagram-title">Low-power duty cycling — where battery life really comes from</p>
       <pre class="diagram">sensor node sampling once per second:
@@ -2041,6 +2061,258 @@ toggleBtn.addEventListener("click", () => {
 
 document.getElementById("retry").addEventListener("click", renderAll);
 renderAll();
+
+// ---------------- Animated diagrams (GIF-style, but pausable) ----------------
+const ANIMATIONS = {
+  stackheap: {
+    interval: 2600,
+    frames: [
+      { n: "After reset: SP starts at the top of RAM. The stack grows DOWN, the heap grows UP — toward each other, with no fence in between.",
+        t: `0x2002_0000 ┌────────────────────────────┐ ◀── SP (top of RAM)
+            │        empty stack         │     stack grows DOWN ▼
+            │                            │
+            │                            │
+            │          free RAM          │
+            │                            │
+            │                            │
+            │                            │     heap grows UP ▲
+            ├────────────────────────────┤ ◀── heap break
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` },
+      { n: "main() is called: its frame — locals, saved registers, return address — is PUSHED and SP moves down.",
+        t: `0x2002_0000 ┌────────────────────────────┐
+            │ main() frame               │
+            │  locals, saved registers   │ ◀── SP
+            │                            │
+            │          free RAM          │
+            │                            │
+            │                            │
+            │                            │
+            ├────────────────────────────┤ ◀── heap break
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` },
+      { n: "main() calls parse(): another frame stacks below. Every nested call pushes; depth = stack use.",
+        t: `0x2002_0000 ┌────────────────────────────┐
+            │ main() frame               │
+            │ parse() frame              │
+            │  buf[64], return address   │ ◀── SP
+            │          free RAM          │
+            │                            │
+            │                            │
+            │                            │
+            ├────────────────────────────┤ ◀── heap break
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` },
+      { n: "parse() calls checksum(): three frames deep now. Recursion or big locals push SP further and further down.",
+        t: `0x2002_0000 ┌────────────────────────────┐
+            │ main() frame               │
+            │ parse() frame              │
+            │ checksum() frame           │ ◀── SP
+            │          free RAM          │
+            │                            │
+            │                            │
+            │                            │
+            ├────────────────────────────┤ ◀── heap break
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` },
+      { n: "checksum() returns: POP is just SP moving back up. The old frame's bytes are NOT erased — which is why reading freed stack memory 'sometimes works'.",
+        t: `0x2002_0000 ┌────────────────────────────┐
+            │ main() frame               │
+            │ parse() frame              │ ◀── SP (back up)
+            │ (stale checksum() bytes)   │     not erased!
+            │          free RAM          │
+            │                            │
+            │                            │
+            │                            │
+            ├────────────────────────────┤ ◀── heap break
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` },
+      { n: "malloc(64): the heap grows UP from the bottom. Stack and heap now approach each other from both ends of free RAM.",
+        t: `0x2002_0000 ┌────────────────────────────┐
+            │ main() frame               │
+            │ parse() frame              │ ◀── SP
+            │                            │
+            │          free RAM          │
+            │                            │
+            │                            │
+            ├────────────────────────────┤ ◀── heap break moved UP
+            │ heap: A = malloc(64)       │
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` },
+      { n: "malloc(128), then free(A): block B sits above a HOLE. Freed memory leaves gaps — fragmentation — which is why long-running firmware often avoids malloc entirely.",
+        t: `0x2002_0000 ┌────────────────────────────┐
+            │ main() frame               │
+            │ parse() frame              │ ◀── SP
+            │                            │
+            │          free RAM          │
+            │                            │
+            ├────────────────────────────┤ ◀── heap break
+            │ heap: B = malloc(128)      │
+            │ (hole — A was freed)       │
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` },
+      { n: "A deep call with char line[2048] pushes SP BELOW the heap break. No MMU, no fault — the push silently overwrites heap block B. This is the 'random corruption' bug from the senior question.",
+        t: `0x2002_0000 ┌────────────────────────────┐
+            │ main() frame               │
+            │ parse() frame              │
+            │ log_packet() frame         │
+            │  char line[2048] ...       │
+            │ ██████ STACK OVERFLOW █████│ ◀── SP is BELOW the
+            ├──────── overlap! ──────────┤     heap break
+            │ heap: B  ← CORRUPTED       │
+            │ (hole)                     │
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` },
+      { n: "Defenses: an MPU guard region under the stack turns silent corruption into a loud HardFault; stack high-water marks measure real worst-case depth; static pools replace malloc.",
+        t: `0x2002_0000 ┌────────────────────────────┐
+            │ stack (bounded, measured   │
+            │  with high-water marks)    │
+            │ ▒▒▒ MPU guard region ▒▒▒   │ ◀── any write here
+            │                            │     = HardFault (loud!)
+            │          free RAM          │
+            │                            │
+            ├────────────────────────────┤
+            │ static pools (no malloc)   │
+            │ .data / .bss  (globals)    │
+0x2000_0000 └────────────────────────────┘` }
+    ]
+  },
+  fir: {
+    interval: 2200,
+    frames: [
+      { n: "A 3-tap smoothing FIR: h = [1, 2, 1]/4. The kernel slides along the input; each position produces one output sample.",
+        t: `x:    3    1    4    1    5    9    2    6
+h:  [ 1    2    1 ] / 4        ← slides right each step
+
+y:    ·    ·    ·    ·    ·    ·`  },
+      { n: "Position 1: y[1] = (1·3 + 2·1 + 1·4)/4 = 2.25. One multiply-accumulate per tap — this is the MAC loop from the code question.",
+        t: `x:    3    1    4    1    5    9    2    6
+h:  [ 1    2    1 ]/4
+      └────┼────┘
+y:       2.25    ·    ·    ·    ·` },
+      { n: "Slide one sample right: y[2] = (1·1 + 2·4 + 1·1)/4 = 2.50.",
+        t: `x:    3    1    4    1    5    9    2    6
+h:       [ 1    2    1 ]/4
+           └────┼────┘
+y:       2.25  2.50   ·    ·    ·` },
+      { n: "y[3] = (1·4 + 2·1 + 1·5)/4 = 2.75. Notice the output is smoother than the input — high-frequency wiggle is being averaged out.",
+        t: `x:    3    1    4    1    5    9    2    6
+h:            [ 1    2    1 ]/4
+                └────┼────┘
+y:       2.25  2.50  2.75   ·    ·` },
+      { n: "y[4] = (1·1 + 2·5 + 1·9)/4 = 5.00. The big 9 starts pulling the average up — but spread over neighbors (that spreading IS the lowpass action).",
+        t: `x:    3    1    4    1    5    9    2    6
+h:                 [ 1    2    1 ]/4
+                     └────┼────┘
+y:       2.25  2.50  2.75  5.00   ·` },
+      { n: "y[5] = (1·5 + 2·9 + 1·2)/4 = 6.25 — and so on to the end. Convolution = flip, slide, multiply-accumulate. With N taps and M samples: (N·M) MACs, the workload DSP chips are built around.",
+        t: `x:    3    1    4    1    5    9    2    6
+h:                      [ 1    2    1 ]/4
+                          └────┼────┘
+y:       2.25  2.50  2.75  5.00  6.25` }
+    ]
+  },
+  reduction: {
+    interval: 2200,
+    frames: [
+      { n: "8 values in shared memory, 8 threads. Goal: the sum, in log2(8) = 3 steps instead of 7 serial additions.",
+        t: `s[]:    8    3    5    1    9    2    4    6
+threads: t0   t1   t2   t3   t4   t5   t6   t7
+stride = 4                        (all threads active)` },
+      { n: "Stride 4: threads 0–3 each add the element 4 slots away (t0: s[0]+=s[4] …). Then __syncthreads() — EVERY thread must reach the barrier.",
+        t: `s[]:    8    3    5    1    9    2    4    6
+         ▲────┼────┼────┼─────┘    │    │    │
+              ▲────┼────┼──────────┘    │    │
+                   ▲────┼───────────────┘    │
+                        ▲────────────────────┘
+s[]:   17    5    9    7    ·    ·    ·    ·      __syncthreads()` },
+      { n: "Stride 2: only threads 0–1 still work (t0: s[0]+=s[2], t1: s[1]+=s[3]). Half the threads retire each step.",
+        t: `s[]:   17    5    9    7
+         ▲────┼────┘    │
+              ▲─────────┘
+s[]:   26   12    ·    ·                          __syncthreads()` },
+      { n: "Stride 1: one thread left. s[0] += s[1] → 38.",
+        t: `s[]:   26   12
+         ▲────┘
+s[]:   38    ·                                    __syncthreads()` },
+      { n: "Done in 3 steps: s[0] = 38. Thread 0 writes it out; one atomicAdd per block (or a second kernel) combines the per-block partials. Same total work as serial — but logarithmic DEPTH.",
+        t: `s[]:   38
+        └──▶ if (tid == 0) atomicAdd(total, s[0]);
+
+1024 values: 10 steps.   1M values: 20 steps.
+parallelism shortens the critical path, not the work` }
+    ]
+  },
+  dma: {
+    interval: 2000,
+    frames: [
+      { n: "Circular DMA reception into one buffer split in two halves. DMA fills half A; the CPU is free (or asleep).",
+        t: `DMA ──▶ [ A ███░░░░░░░ ][ B ░░░░░░░░░░ ]
+CPU:      idle / other work / sleeping` },
+      { n: "Half A is full → HALF-TRANSFER interrupt. DMA rolls straight on into half B without stopping.",
+        t: `DMA ──▶ [ A ██████████ ][ B █░░░░░░░░░ ]
+                     │
+              half-transfer IRQ ──▶ CPU: process A now!` },
+      { n: "The overlap: CPU processes half A WHILE the DMA fills half B. Two workers, zero per-byte interrupts.",
+        t: `DMA ──▶ [ A ▒▒▒▒▒▒▒▒▒▒ ][ B ██████░░░░ ]
+                 ▲ CPU reading A       ▲ DMA writing B
+                 (must finish before B fills!)` },
+      { n: "Half B full → TRANSFER-COMPLETE interrupt; DMA wraps around to half A. Now the CPU processes B while A refills. The ping-pong continues forever.",
+        t: `DMA ──▶ [ A █░░░░░░░░░ ][ B ▒▒▒▒▒▒▒▒▒▒ ]
+             ▲ DMA writing A       ▲ CPU reading B
+                     transfer-complete IRQ, wrapped` },
+      { n: "The one rule: processing a half must take LESS time than filling one. If the CPU falls behind, the DMA laps it and overwrites unread data — silently. Size the halves for your worst case.",
+        t: `too slow:
+DMA ──▶ [ A ██████████ ][ B ██████████ ]
+             ▲ CPU still reading A... DMA wraps and
+               OVERWRITES it — data lost, no error raised` }
+    ]
+  }
+};
+
+function mountAnimations() {
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.querySelectorAll(".anim-box[data-anim]").forEach(box => {
+    const anim = ANIMATIONS[box.dataset.anim];
+    if (!anim) return;
+    const pre = el("pre", "");
+    const note = el("p", "anim-note");
+    const controls = el("div", "anim-controls");
+    const resetBtn = el("button", "", "⏮ Reset");
+    const playBtn = el("button", "", "⏸ Pause");
+    const stepBtn = el("button", "", "Step ▶");
+    const counter = el("span", "anim-counter");
+    [resetBtn, playBtn, stepBtn].forEach(b => { b.type = "button"; controls.appendChild(b); });
+    controls.appendChild(counter);
+    box.appendChild(pre); box.appendChild(note); box.appendChild(controls);
+
+    let i = 0, timer = null;
+    function show(k) {
+      i = ((k % anim.frames.length) + anim.frames.length) % anim.frames.length;
+      pre.textContent = anim.frames[i].t;
+      note.textContent = anim.frames[i].n;
+      counter.textContent = `step ${i + 1} / ${anim.frames.length}`;
+    }
+    function stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      playBtn.textContent = "▶ Play";
+      playBtn.classList.remove("playing");
+    }
+    function play() {
+      if (timer) return stop();
+      timer = setInterval(() => show(i + 1), anim.interval);
+      playBtn.textContent = "⏸ Pause";
+      playBtn.classList.add("playing");
+    }
+    playBtn.addEventListener("click", play);
+    stepBtn.addEventListener("click", () => { stop(); show(i + 1); });
+    resetBtn.addEventListener("click", () => { stop(); show(0); });
+    show(0);
+    if (!reduceMotion) play(); else stop();
+  });
+}
+mountAnimations();
 </script>
 </body>
 </html>
