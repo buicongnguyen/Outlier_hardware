@@ -166,6 +166,35 @@
 symmetric taps (h0 = h3, h1 = h2)  =&gt;  exactly linear phase,
 constant group delay of (N−1)/2 samples</pre>
 
+      <p class="diagram-title">IIR biquad — data flow with the feedback loop that creates the poles</p>
+      <pre class="diagram">feed-forward part (zeros)             feedback part (poles!)
+
+x[n]   ──(×b0)──▶(+)──────────────┬────▶ y[n]
+x[n−1] ──(×b1)──▶(+)              │
+x[n−2] ──(×b2)──▶(+)              │  output is fed BACK into the sum:
+                  ▲               │
+y[n−1] ──(×−a1)───┤◀──[z^-1]──────┤
+y[n−2] ──(×−a2)───┘◀──[z^-1]──[z^-1]
+
+y[n] = b0·x[n] + b1·x[n−1] + b2·x[n−2] − a1·y[n−1] − a2·y[n−2]
+
+the loop is the power and the danger: 5 coefficients give a sharp filter,
+but errors recirculate forever — coefficient rounding that nudges a pole
+outside the unit circle turns the filter into an oscillator.
+FIR has no loop, so it cannot blow up.</pre>
+
+      <p class="diagram-title">Multirate data flow — "decimate early, interpolate late"</p>
+      <pre class="diagram">RIGHT: filter first, then drop samples
+
+48 kHz in ──▶ [ LPF below 4 kHz ] ──▶ [ ↓6  keep every 6th ] ──▶ 8 kHz ──▶ heavy
+              anti-alias for the        sample-rate ÷ 6                    analysis
+              NEW Nyquist (4 kHz)                                          at 1/6 the
+                                                                           CPU cost
+WRONG: drop samples first
+
+48 kHz in ──▶ [ ↓6 ] ──▶ [ LPF ] ──▶ 6–24 kHz content has ALREADY folded
+                                     into 0–4 kHz — the filter is too late</pre>
+
       <p class="diagram-title">FFT — radix-2 butterfly and why it is fast</p>
       <pre class="diagram">one butterfly (2-point DFT):            full N-point FFT:
 
@@ -250,6 +279,20 @@ constant group delay of (N−1)/2 samples</pre>
  global (DRAM)      whole device   ~400–800 cycles
  host RAM (PCIe)    via memcpy     slowest — batch and overlap</pre>
 
+      <p class="diagram-title">Warp divergence — execution timeline of one warp</p>
+      <pre class="diagram">if (tid % 2 == 0) f(); else g();          one warp = 32 lanes, ONE instruction stream
+
+time ──────────────────────────────────────▶
+even lanes:  ████ f() ████ ░░░░ masked ░░░░
+odd  lanes:  ░░░░ masked ░░░░ ████ g() ████
+                                              cost ≈ time(f) + time(g)
+
+if (blockIdx.x % 2 == 0) f(); else g();    whole warps agree on the branch
+
+warp 0:      ████ f() ████                    cost ≈ max(f, g)
+warp 1:      ████ g() ████    ← different warps diverging is FREE;
+                                only divergence INSIDE a warp serializes</pre>
+
       <p class="diagram-title">Coalesced vs strided global access (one warp)</p>
       <pre class="diagram">coalesced (good):   thread    0   1   2   3  ...  31
                     address   0   4   8  12  ... 124    → 1 wide transaction
@@ -310,6 +353,24 @@ the result comes down once
 
 why it wins:  FFT convolution is O(N log N) vs O(N·M) direct, and cuFFT is
 already tuned — your only custom code is the tiny pointwise kernel</pre>
+
+      <p class="diagram-title">Stream pipelining — sequence timeline of copy/compute overlap</p>
+      <pre class="diagram">3 batches (A, B, C), each: upload ─ compute ─ download.  Pinned memory +
+cudaMemcpyAsync + one stream per batch:
+
+time ─────────────────────────────────────────────▶
+copy engine H2D :  [A↑][B↑][C↑]
+SMs  (compute)  :      [A████][B████][C████]
+copy engine D2H :             [A↓]   [B↓]   [C↓]
+                       ▲ while A computes, B is already uploading
+
+same work on ONE stream — every step waits for the previous:
+
+               [A↑][A████][A↓][B↑][B████][B↓][C↑][C████][C↓]
+                                              ≈ 3× the wall clock
+
+the GPU has separate copy engines and compute units — a pipeline keeps
+all three lanes busy, exactly like DMA ping-pong on an MCU</pre>
 
       <h3 class="sub">Finding the bottleneck — and designing it away</h3>
       <div class="term-grid">
@@ -452,6 +513,24 @@ while (1) {                         task_logging   (prio 1, background)
 }                                   task costs zero CPU
 one timing budget shared by all     bounded latency per priority level</pre>
 
+      <p class="diagram-title">Sequence diagram — one UART byte, from wire to task (RTOS)</p>
+      <pre class="diagram">UART hw       NVIC          ISR                RTOS scheduler      comms task
+  │             │             │                      │            (blocked on queue,
+  │ byte        │             │                      │             costs zero CPU)
+  ├── IRQ ─────▶│             │                      │                  │
+  │             ├── vector ──▶│                      │                  │
+  │             │             │ read data register   │                  │
+  │             │             │ clear IRQ flag       │                  │
+  │             │             │ xQueueSendFromISR ──▶│ task now READY   │
+  │             │             │ return               │                  │
+  │             │             │                      ├─ context switch ▶│ wakes:
+  │             │             │                      │                  │ parse msg,
+  │             │             │                      │                  │ reply, block
+  ▼             ▼             ▼                      ▼                  ▼ again
+time flows downward.  the ISR touches hardware for microseconds;
+everything slow happens in the task, at task priority — and while the
+queue is empty the task consumes nothing at all</pre>
+
       <h3 class="sub">Deeper dives</h3>
       <div class="term-grid">
         <article class="term-card"><h3>Atomic register writes vs read-modify-write</h3><p><code>GPIOA-&gt;ODR |= (1&lt;&lt;5)</code> is three steps — read, modify, write — and an ISR writing the same register in between is silently undone. Hardware designers provide single-write alternatives: set/reset registers (BSRR on STM32), where one store atomically sets or clears chosen bits. Rule: prefer write-only set/clear registers for anything an ISR might also touch; otherwise wrap the RMW in a critical section.</p></article>
@@ -489,6 +568,25 @@ one timing budget shared by all     bounded latency per priority level</pre>
 
 #define GPIOA_BSRR (*(volatile uint32_t*)0x40020018)   // this line IS the driver
 GPIOA_BSRR = (1 &lt;&lt; 5);                                 // LED on — one store</pre>
+
+      <p class="diagram-title">Boot — function-call flow from reset to application</p>
+      <pre class="diagram">power-on / reset
+   │  hardware: fetch initial SP + Reset_Handler address
+   │  from the vector table at the start of flash
+   ▼
+Reset_Handler()                        ── startup code (assembly/C)
+   ├──▶ SystemInit()                      clocks, PLL, flash wait states
+   ├──▶ copy .data   flash ──▶ RAM        initialized globals
+   ├──▶ zero .bss                         uninitialized globals
+   ▼
+main()
+   ├──▶ driver init: GPIO, UART, timers, DMA
+   ├──▶ enable interrupts                 ← only AFTER the drivers exist
+   └──▶ while(1) superloop
+         — or ──▶ create tasks ──▶ vTaskStartScheduler()   (never returns)
+
+until .data/.bss are set up, C globals are garbage — this is why that
+work happens in startup code, before a single line of main() runs</pre>
 
       <p class="diagram-title">The read-modify-write race — and the atomic fix</p>
       <pre class="diagram">the race:                                the hardware-assisted fix:
@@ -537,6 +635,28 @@ no data loss while processing a half is faster than filling one</pre>
 
 I_avg ≈ 2 µA + (20 ms / 1000 ms) × 8 mA ≈ 162 µA   → months on a coin cell
 halving awake TIME beats halving awake CURRENT — optimize the duty cycle</pre>
+
+      <p class="diagram-title">OTA update — state flow with automatic rollback</p>
+      <pre class="diagram">          download to the           verify signature + CRC
+          INACTIVE slot             of the staged image
+┌───────────┐         ┌────────────┐         ┌─────────────────┐
+│ A running │────────▶│ B staged   │────────▶│ B provisional   │
+│ (healthy) │         │ (A intact!)│  valid  │ boot: trial run │
+└───────────┘         └────────────┘         └─────────────────┘
+      ▲                     │ invalid              │         │
+      │                     ▼                      │ self-   │ boot loop /
+      │               discard B,             test  │ test    │ watchdog /
+      │               stay on A              PASSES│         │ no check-in
+      │                                           ▼          ▼
+      │                                  ┌──────────────┐  ┌──────────────┐
+      │                                  │ mark B good: │  │ bootloader   │
+      │                                  │ B is the new │  │ FALLS BACK   │
+      │                                  │ running slot │  │ to slot A    │
+      │                                  └──────────────┘  └──────┬───────┘
+      └───────────────────────────────────────────────────────────┘
+
+invariant: at every arrow, power loss still leaves ONE bootable, verified
+image — the old slot is never erased until the new one has proven itself</pre>
 
       <div class="link-list">
         <a href="https://interrupt.memfault.com/" target="_blank" rel="noopener">Interrupt — Memfault embedded blog</a>
