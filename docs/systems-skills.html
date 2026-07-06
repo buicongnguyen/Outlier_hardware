@@ -63,6 +63,24 @@
     .qa-body { padding:2px 15px 15px; }
     .qa-body p { color:var(--muted); margin-bottom:8px; }
     .qa-body .code-snippet { margin:10px 0; }
+    .svg-diagram { display:block; width:100%; height:auto; margin:14px 0 0; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); }
+    .anim-svg { padding:10px 14px 2px; }
+    .anim-svg svg { display:block; width:100%; max-width:680px; height:auto; margin:0 auto; }
+    .svgfig text { font-family:Arial,Helvetica,sans-serif; font-size:13px; fill:var(--text); }
+    .svgfig .t-mono { font-family:Consolas,Menlo,monospace; }
+    .svgfig .t-muted { fill:var(--muted); font-weight:400; }
+    .svgfig .t-accent { fill:var(--accent-strong); font-weight:700; }
+    .svgfig .t-warn { fill:var(--warn); font-weight:700; }
+    .svgfig .b-accent { fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.4; }
+    .svgfig .b-plain { fill:var(--bg); stroke:var(--line); stroke-width:1.4; }
+    .svgfig .b-warn { fill:var(--warn-soft); stroke:var(--warn); stroke-width:1.4; }
+    .svgfig .ln { stroke:var(--muted); stroke-width:1.5; fill:none; }
+    .svgfig .ln-accent { stroke:var(--accent); stroke-width:1.8; fill:none; }
+    .svgfig .ln-warn { stroke:var(--warn); stroke-width:1.8; fill:none; }
+    .svgfig .ln-dash { stroke:var(--line); stroke-width:1.2; stroke-dasharray:4 4; fill:none; }
+    .svgfig .wave { stroke:var(--accent); stroke-width:2.2; fill:none; }
+    .svgfig .wave2 { stroke:var(--warn); stroke-width:2.2; fill:none; stroke-dasharray:7 5; }
+    .svgfig .dot { fill:var(--text); }
     .bar-btn { min-height:38px; border:1px solid var(--accent); border-radius:6px; padding:7px 14px; background:var(--accent); color:#ffffff; font-weight:700; font-size:14px; cursor:pointer; }
     .bar-btn:hover { background:var(--accent-strong); border-color:var(--accent-strong); }
     .bar-btn.secondary { background:var(--panel); color:var(--text); border-color:var(--line); }
@@ -153,34 +171,46 @@
       </div>
 
       <p class="diagram-title">Sampling vs aliasing — 7 kHz sampled at 10 kHz</p>
-      <pre class="diagram">fs = 10 kHz  =&gt;  Nyquist limit fs/2 = 5 kHz.   Input at 7 kHz is above the limit.
-
-  true 7 kHz signal, * = sample instants (every 0.1 ms)
-
-    /\      /\      /\      /\      /\
-   /  \    /  \    /  \    /  \    /       a slower 3 kHz sine passes through
-  *    \  /    *  /    \  *    \  /        exactly the same * points
- /      \/      \/      \/      \/
- ─────────────────────────────────── t
-
-  frequency axis after sampling (spectrum folds at fs/2):
-
-  0 ──────────────── 5 kHz ──────────────── 10 kHz
-            ▲                     │
-        3 kHz alias  &lt;── folds ── 7 kHz input      alias = |fs − f| = |10 − 7| = 3 kHz</pre>
+      <svg id="alias-svg" class="svg-diagram svgfig" viewBox="0 0 760 290" role="img" aria-label="A 7 kHz sine and a 3 kHz sine passing through the same sample points"></svg>
 
       <p class="diagram-title">FIR filter — tapped delay line (direct form)</p>
-      <pre class="diagram">x[n] ──┬──[z^-1]──┬──[z^-1]──┬──[z^-1]──┐
-       │          │          │          │
-     (×h0)      (×h1)      (×h2)      (×h3)         no feedback path
-       │          │          │          │           =&gt; always stable
-       └───(+)────┴───(+)────┴───(+)────┘
-                       │
-                       ▼
-   y[n] = h0·x[n] + h1·x[n−1] + h2·x[n−2] + h3·x[n−3]
-
-symmetric taps (h0 = h3, h1 = h2)  =&gt;  exactly linear phase,
-constant group delay of (N−1)/2 samples</pre>
+      <svg class="svg-diagram svgfig" viewBox="0 0 760 252" role="img" aria-label="FIR filter tapped delay line block diagram">
+        <defs><marker id="arrF" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>
+        <text x="26" y="64" class="t-accent">x[n]</text>
+        <line x1="64" y1="60" x2="118" y2="60" class="ln-accent" marker-end="url(#arrF)"/>
+        <circle cx="100" cy="60" r="3.5" fill="var(--accent)"/>
+        <rect x="122" y="42" width="64" height="36" rx="5" class="b-plain"/><text x="154" y="65" text-anchor="middle" class="t-mono">z⁻¹</text>
+        <line x1="186" y1="60" x2="258" y2="60" class="ln-accent" marker-end="url(#arrF)"/>
+        <circle cx="240" cy="60" r="3.5" fill="var(--accent)"/>
+        <rect x="262" y="42" width="64" height="36" rx="5" class="b-plain"/><text x="294" y="65" text-anchor="middle" class="t-mono">z⁻¹</text>
+        <line x1="326" y1="60" x2="398" y2="60" class="ln-accent" marker-end="url(#arrF)"/>
+        <circle cx="380" cy="60" r="3.5" fill="var(--accent)"/>
+        <rect x="402" y="42" width="64" height="36" rx="5" class="b-plain"/><text x="434" y="65" text-anchor="middle" class="t-mono">z⁻¹</text>
+        <line x1="466" y1="60" x2="520" y2="60" class="ln-accent"/>
+        <circle cx="520" cy="60" r="3.5" fill="var(--accent)"/>
+        <line x1="100" y1="60" x2="100" y2="111" class="ln"/>
+        <line x1="240" y1="60" x2="240" y2="111" class="ln"/>
+        <line x1="380" y1="60" x2="380" y2="111" class="ln"/>
+        <line x1="520" y1="60" x2="520" y2="111" class="ln"/>
+        <circle cx="100" cy="130" r="18" class="b-accent"/><text x="100" y="135" text-anchor="middle" class="t-mono">×h₀</text>
+        <circle cx="240" cy="130" r="18" class="b-accent"/><text x="240" y="135" text-anchor="middle" class="t-mono">×h₁</text>
+        <circle cx="380" cy="130" r="18" class="b-accent"/><text x="380" y="135" text-anchor="middle" class="t-mono">×h₂</text>
+        <circle cx="520" cy="130" r="18" class="b-accent"/><text x="520" y="135" text-anchor="middle" class="t-mono">×h₃</text>
+        <line x1="100" y1="148" x2="100" y2="200" class="ln"/>
+        <line x1="240" y1="148" x2="240" y2="183" class="ln"/>
+        <line x1="380" y1="148" x2="380" y2="183" class="ln"/>
+        <line x1="520" y1="148" x2="520" y2="183" class="ln"/>
+        <line x1="100" y1="200" x2="224" y2="200" class="ln"/>
+        <circle cx="240" cy="200" r="16" class="b-plain"/><text x="240" y="205" text-anchor="middle">+</text>
+        <line x1="256" y1="200" x2="363" y2="200" class="ln"/>
+        <circle cx="380" cy="200" r="16" class="b-plain"/><text x="380" y="205" text-anchor="middle">+</text>
+        <line x1="396" y1="200" x2="503" y2="200" class="ln"/>
+        <circle cx="520" cy="200" r="16" class="b-plain"/><text x="520" y="205" text-anchor="middle">+</text>
+        <line x1="536" y1="200" x2="636" y2="200" class="ln-accent" marker-end="url(#arrF)"/>
+        <text x="644" y="205" class="t-accent">y[n]</text>
+        <text x="558" y="34" class="t-muted">no feedback path ⇒ always stable</text>
+        <text x="64" y="240" class="t-muted">y[n] = h₀·x[n] + h₁·x[n−1] + h₂·x[n−2] + h₃·x[n−3] — symmetric taps ⇒ linear phase, constant delay (N−1)/2</text>
+      </svg>
 
       <p class="diagram-title">Animated — FIR convolution, the kernel sliding over the signal</p>
       <div class="anim-box" data-anim="fir"></div>
@@ -454,30 +484,48 @@ all three lanes busy, exactly like DMA ping-pong on an MCU</pre>
       </div>
 
       <p class="diagram-title">Bottleneck decision tree — measure, classify, fix</p>
-      <pre class="diagram">nsys timeline of the whole app
- │
- ├─ memcpys dominate?  ──▶ TRANSFER-BOUND
- │     fix by design: keep data resident on device across kernels,
- │     move the whole pipeline (not one function), pinned memory,
- │     overlap copy/compute with streams
- │
- ├─ gaps between kernels? ──▶ LAUNCH / CPU-BOUND
- │     fix by design: fuse tiny kernels, batch work (cufftPlanMany),
- │     CUDA Graphs, overlap CPU prep with GPU compute
- │
- └─ one kernel dominates? ──▶ profile it with ncu
-        │
-        ├─ memory pipe ~peak ──▶ MEMORY-BOUND
-        │     fuse passes, tile reuse into shared memory, SoA layout,
-        │     coalesce, smaller types (FP16), recompute instead of store
-        │
-        ├─ compute pipe ~peak ──▶ COMPUTE-BOUND
-        │     lower precision / tensor cores, better algorithm
-        │     (FFT conv instead of direct), call a tuned library
-        │
-        └─ neither ~peak ──▶ LATENCY-BOUND
-              more parallelism: more blocks, fewer registers per thread,
-              fix divergence &amp; bank conflicts, several elements per thread</pre>
+      <svg class="svg-diagram svgfig" viewBox="0 0 760 344" role="img" aria-label="GPU bottleneck decision tree">
+        <defs><marker id="arrT" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>
+        <rect x="270" y="14" width="220" height="42" rx="6" class="b-accent"/>
+        <text x="380" y="32" text-anchor="middle" class="t-accent">profile the whole timeline</text>
+        <text x="380" y="48" text-anchor="middle" class="t-muted" font-size="12">Nsight Systems (nsys)</text>
+        <path d="M 380,56 L 380,70 L 137,70 L 137,90" class="ln-accent" marker-end="url(#arrT)"/>
+        <path d="M 380,56 L 380,90" class="ln-accent" marker-end="url(#arrT)"/>
+        <path d="M 380,56 L 380,70 L 625,70 L 625,90" class="ln-accent" marker-end="url(#arrT)"/>
+        <rect x="30" y="92" width="214" height="48" rx="6" class="b-plain"/>
+        <text x="137" y="111" text-anchor="middle">copies dominate?</text>
+        <text x="137" y="129" text-anchor="middle" class="t-accent">TRANSFER-BOUND</text>
+        <text x="137" y="158" text-anchor="middle" class="t-muted" font-size="12">keep data resident · pinned</text>
+        <text x="137" y="173" text-anchor="middle" class="t-muted" font-size="12">memory · overlap with streams</text>
+        <rect x="273" y="92" width="214" height="48" rx="6" class="b-plain"/>
+        <text x="380" y="111" text-anchor="middle">gaps between kernels?</text>
+        <text x="380" y="129" text-anchor="middle" class="t-accent">LAUNCH / CPU-BOUND</text>
+        <text x="380" y="158" text-anchor="middle" class="t-muted" font-size="12">fuse tiny kernels · batch plans</text>
+        <text x="380" y="173" text-anchor="middle" class="t-muted" font-size="12">CUDA Graphs · pipeline CPU work</text>
+        <rect x="518" y="92" width="214" height="48" rx="6" class="b-plain"/>
+        <text x="625" y="111" text-anchor="middle">one kernel dominates?</text>
+        <text x="625" y="129" text-anchor="middle" class="t-accent">deep-profile it (ncu)</text>
+        <path d="M 625,140 L 625,160 L 330,160 L 330,186" class="ln-accent" marker-end="url(#arrT)"/>
+        <path d="M 625,140 L 625,160 L 528,160 L 528,186" class="ln-accent" marker-end="url(#arrT)"/>
+        <path d="M 625,140 L 625,186" class="ln-accent" marker-end="url(#arrT)"/>
+        <rect x="236" y="188" width="188" height="50" rx="6" class="b-plain"/>
+        <text x="330" y="207" text-anchor="middle" font-size="12">memory pipe ≈ peak</text>
+        <text x="330" y="226" text-anchor="middle" class="t-accent">MEMORY-BOUND</text>
+        <text x="330" y="258" text-anchor="middle" class="t-muted" font-size="12">move fewer bytes:</text>
+        <text x="330" y="273" text-anchor="middle" class="t-muted" font-size="12">fuse · tile · SoA · FP16</text>
+        <rect x="434" y="188" width="188" height="50" rx="6" class="b-plain"/>
+        <text x="528" y="207" text-anchor="middle" font-size="12">compute pipes ≈ peak</text>
+        <text x="528" y="226" text-anchor="middle" class="t-accent">COMPUTE-BOUND</text>
+        <text x="528" y="258" text-anchor="middle" class="t-muted" font-size="12">cheaper math: precision,</text>
+        <text x="528" y="273" text-anchor="middle" class="t-muted" font-size="12">better algorithm, libraries</text>
+        <rect x="632" y="188" width="120" height="50" rx="6" class="b-plain"/>
+        <text x="692" y="207" text-anchor="middle" font-size="12">neither ≈ peak</text>
+        <text x="692" y="226" text-anchor="middle" class="t-accent" font-size="12">LATENCY-BOUND</text>
+        <text x="692" y="258" text-anchor="middle" class="t-muted" font-size="12">more parallelism:</text>
+        <text x="692" y="273" text-anchor="middle" class="t-muted" font-size="12">occupancy · ILP</text>
+        <path d="M 30,300 L 730,300" class="ln-dash"/>
+        <text x="380" y="326" text-anchor="middle" class="t-muted">apply the matching fix, then RE-PROFILE — removing one bottleneck promotes the next (Amdahl's law)</text>
+      </svg>
 
       <div class="table-wrap">
         <table>
@@ -587,22 +635,36 @@ while (1) {                         task_logging   (prio 1, background)
 one timing budget shared by all     bounded latency per priority level</pre>
 
       <p class="diagram-title">Sequence diagram — one UART byte, from wire to task (RTOS)</p>
-      <pre class="diagram">UART hw       NVIC          ISR                RTOS scheduler      comms task
-  │             │             │                      │            (blocked on queue,
-  │ byte        │             │                      │             costs zero CPU)
-  ├── IRQ ─────▶│             │                      │                  │
-  │             ├── vector ──▶│                      │                  │
-  │             │             │ read data register   │                  │
-  │             │             │ clear IRQ flag       │                  │
-  │             │             │ xQueueSendFromISR ──▶│ task now READY   │
-  │             │             │ return               │                  │
-  │             │             │                      ├─ context switch ▶│ wakes:
-  │             │             │                      │                  │ parse msg,
-  │             │             │                      │                  │ reply, block
-  ▼             ▼             ▼                      ▼                  ▼ again
-time flows downward.  the ISR touches hardware for microseconds;
-everything slow happens in the task, at task priority — and while the
-queue is empty the task consumes nothing at all</pre>
+      <svg class="svg-diagram svgfig" viewBox="0 0 760 336" role="img" aria-label="Sequence diagram of a UART byte travelling from hardware to a task">
+        <defs><marker id="arrQ" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>
+        <rect x="20" y="12" width="100" height="30" rx="5" class="b-accent"/><text x="70" y="32" text-anchor="middle">UART hw</text>
+        <rect x="160" y="12" width="100" height="30" rx="5" class="b-accent"/><text x="210" y="32" text-anchor="middle">NVIC</text>
+        <rect x="305" y="12" width="90" height="30" rx="5" class="b-accent"/><text x="350" y="32" text-anchor="middle">ISR</text>
+        <rect x="440" y="12" width="110" height="30" rx="5" class="b-accent"/><text x="495" y="32" text-anchor="middle">scheduler</text>
+        <rect x="595" y="12" width="120" height="30" rx="5" class="b-accent"/><text x="655" y="32" text-anchor="middle">comms task</text>
+        <line x1="70" y1="42" x2="70" y2="296" class="ln-dash"/>
+        <line x1="210" y1="42" x2="210" y2="296" class="ln-dash"/>
+        <line x1="350" y1="42" x2="350" y2="296" class="ln-dash"/>
+        <line x1="495" y1="42" x2="495" y2="296" class="ln-dash"/>
+        <line x1="655" y1="42" x2="655" y2="296" class="ln-dash"/>
+        <text x="655" y="58" text-anchor="middle" class="t-muted" font-size="12">blocked on queue — 0% CPU</text>
+        <line x1="70" y1="84" x2="204" y2="84" class="ln-accent" marker-end="url(#arrQ)"/>
+        <text x="137" y="78" text-anchor="middle" font-size="12">byte arrives → IRQ</text>
+        <line x1="210" y1="112" x2="342" y2="112" class="ln-accent" marker-end="url(#arrQ)"/>
+        <text x="276" y="106" text-anchor="middle" font-size="12">vector to handler</text>
+        <rect x="344" y="112" width="12" height="98" rx="2" class="b-accent"/>
+        <text x="364" y="138" font-size="12" class="t-muted">read DR, clear IRQ flag</text>
+        <line x1="356" y1="162" x2="487" y2="162" class="ln-accent" marker-end="url(#arrQ)"/>
+        <text x="422" y="156" text-anchor="middle" font-size="12" class="t-mono">xQueueSendFromISR()</text>
+        <text x="503" y="182" font-size="12" class="t-muted">task → READY</text>
+        <text x="364" y="204" font-size="12" class="t-muted">return (µs total)</text>
+        <line x1="495" y1="238" x2="647" y2="238" class="ln-accent" marker-end="url(#arrQ)"/>
+        <text x="571" y="232" text-anchor="middle" font-size="12">context switch</text>
+        <rect x="649" y="238" width="12" height="46" rx="2" class="b-accent"/>
+        <text x="640" y="258" text-anchor="end" font-size="12" class="t-muted">parse message, reply,</text>
+        <text x="640" y="274" text-anchor="end" font-size="12" class="t-muted">block on queue again</text>
+        <text x="30" y="322" class="t-muted">time flows downward — the ISR touches hardware for microseconds; everything slow runs in the task, at task priority</text>
+      </svg>
 
       <h3 class="sub">Deeper dives</h3>
       <div class="term-grid">
@@ -716,26 +778,44 @@ I_avg ≈ 2 µA + (20 ms / 1000 ms) × 8 mA ≈ 162 µA   → months on a coin c
 halving awake TIME beats halving awake CURRENT — optimize the duty cycle</pre>
 
       <p class="diagram-title">OTA update — state flow with automatic rollback</p>
-      <pre class="diagram">          download to the           verify signature + CRC
-          INACTIVE slot             of the staged image
-┌───────────┐         ┌────────────┐         ┌─────────────────┐
-│ A running │────────▶│ B staged   │────────▶│ B provisional   │
-│ (healthy) │         │ (A intact!)│  valid  │ boot: trial run │
-└───────────┘         └────────────┘         └─────────────────┘
-      ▲                     │ invalid              │         │
-      │                     ▼                      │ self-   │ boot loop /
-      │               discard B,             test  │ test    │ watchdog /
-      │               stay on A              PASSES│         │ no check-in
-      │                                           ▼          ▼
-      │                                  ┌──────────────┐  ┌──────────────┐
-      │                                  │ mark B good: │  │ bootloader   │
-      │                                  │ B is the new │  │ FALLS BACK   │
-      │                                  │ running slot │  │ to slot A    │
-      │                                  └──────────────┘  └──────┬───────┘
-      └───────────────────────────────────────────────────────────┘
-
-invariant: at every arrow, power loss still leaves ONE bootable, verified
-image — the old slot is never erased until the new one has proven itself</pre>
+      <svg class="svg-diagram svgfig" viewBox="0 0 760 300" role="img" aria-label="OTA update state flow with rollback">
+        <defs>
+          <marker id="arrO" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+          <marker id="arrOw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--warn)"/></marker>
+        </defs>
+        <rect x="18" y="70" width="140" height="54" rx="7" class="b-accent"/>
+        <text x="88" y="92" text-anchor="middle" class="t-accent">A running</text>
+        <text x="88" y="110" text-anchor="middle" class="t-muted" font-size="12">(healthy)</text>
+        <line x1="158" y1="97" x2="208" y2="97" class="ln-accent" marker-end="url(#arrO)"/>
+        <text x="183" y="62" text-anchor="middle" class="t-muted" font-size="12">download to</text>
+        <text x="183" y="77" text-anchor="middle" class="t-muted" font-size="12">inactive slot</text>
+        <rect x="212" y="70" width="140" height="54" rx="7" class="b-plain"/>
+        <text x="282" y="92" text-anchor="middle">B staged</text>
+        <text x="282" y="110" text-anchor="middle" class="t-muted" font-size="12">(A intact!)</text>
+        <line x1="352" y1="97" x2="402" y2="97" class="ln-accent" marker-end="url(#arrO)"/>
+        <text x="377" y="62" text-anchor="middle" class="t-muted" font-size="12">verify signature</text>
+        <text x="377" y="77" text-anchor="middle" class="t-muted" font-size="12">+ CRC → valid</text>
+        <rect x="406" y="70" width="150" height="54" rx="7" class="b-plain"/>
+        <text x="481" y="92" text-anchor="middle">B provisional</text>
+        <text x="481" y="110" text-anchor="middle" class="t-muted" font-size="12">(trial boot)</text>
+        <line x1="556" y1="97" x2="606" y2="97" class="ln-accent" marker-end="url(#arrO)"/>
+        <text x="581" y="62" text-anchor="middle" class="t-muted" font-size="12">self-test</text>
+        <text x="581" y="77" text-anchor="middle" class="t-muted" font-size="12">passes</text>
+        <rect x="610" y="70" width="132" height="54" rx="7" class="b-accent"/>
+        <text x="676" y="92" text-anchor="middle" class="t-accent">B marked good</text>
+        <text x="676" y="110" text-anchor="middle" class="t-muted" font-size="12">new running slot</text>
+        <path d="M 282,124 L 282,208" class="ln-warn"/>
+        <text x="292" y="168" font-size="12" class="t-warn">invalid → discard B</text>
+        <path d="M 481,124 L 481,186" class="ln-warn" marker-end="url(#arrOw)"/>
+        <text x="491" y="152" font-size="12" class="t-warn">boot loop / watchdog reset /</text>
+        <text x="491" y="168" font-size="12" class="t-warn">no check-in</text>
+        <rect x="396" y="188" width="230" height="44" rx="7" class="b-warn"/>
+        <text x="511" y="207" text-anchor="middle" class="t-warn">bootloader FALLS BACK</text>
+        <text x="511" y="224" text-anchor="middle" class="t-muted" font-size="12">boots the intact slot A again</text>
+        <path d="M 396,208 L 88,208 L 88,128" class="ln-warn" marker-end="url(#arrOw)"/>
+        <path d="M 18,262 L 742,262" class="ln-dash"/>
+        <text x="380" y="286" text-anchor="middle" class="t-muted">invariant: power can fail at ANY arrow and one bootable, verified image still exists — A is never erased until B has proven itself</text>
+      </svg>
 
       <div class="link-list">
         <a href="https://interrupt.memfault.com/" target="_blank" rel="noopener">Interrupt — Memfault embedded blog</a>
@@ -2378,6 +2458,54 @@ document.getElementById("retry").addEventListener("click", renderAll);
 renderAll();
 
 // ---------------- Animated diagrams (GIF-style, but pausable) ----------------
+// SVG frame builders: memory column for the stack/heap animation, buffers for DMA
+function memSVG(segs, spIdx) {
+  const X = 170, W = 300;
+  let y = 22, body = "", spY = null;
+  segs.forEach((s, i) => {
+    if (i === spIdx) spY = y;
+    body += `<rect x="${X}" y="${y}" width="${W}" height="${s[0]}" rx="3" class="${s[1]}"/>`;
+    body += `<text x="${X + W / 2}" y="${y + s[0] / 2 + 4}" text-anchor="middle" font-size="12" class="${s[3] || ""}">${s[2]}</text>`;
+    y += s[0];
+  });
+  const sp = spY === null ? "" :
+    `<line x1="${X + W + 10}" y1="${spY}" x2="${X + W + 32}" y2="${spY}" class="ln-accent"/>` +
+    `<circle cx="${X + W + 10}" cy="${spY}" r="3" fill="var(--accent)"/>` +
+    `<text x="${X + W + 38}" y="${spY + 4}" font-size="12" class="t-accent">SP</text>`;
+  return `<svg class="svgfig" viewBox="0 0 640 ${y + 24}" xmlns="http://www.w3.org/2000/svg">` +
+    `<text x="${X - 10}" y="28" text-anchor="end" font-size="11" class="t-mono t-muted">0x2002_0000</text>` +
+    `<text x="${X - 10}" y="${y + 2}" text-anchor="end" font-size="11" class="t-mono t-muted">0x2000_0000</text>` +
+    `<text x="30" y="${y / 2 - 4}" font-size="11" class="t-muted">stack ▼</text>` +
+    `<text x="30" y="${y / 2 + 12}" font-size="11" class="t-muted">heap ▲</text>` +
+    body + sp + `</svg>`;
+}
+
+function dmaSVG(o) {
+  const ax = 60, bx = 370;
+  const buf = (x, f, cls) =>
+    `<rect x="${x}" y="58" width="250" height="46" rx="5" class="b-plain"/>` +
+    (f > 0 ? `<rect x="${x + 2}" y="60" width="${Math.max(6, 246 * f)}" height="42" rx="4" class="${cls}"/>` : "");
+  let s = `<svg class="svgfig" viewBox="0 0 680 170" xmlns="http://www.w3.org/2000/svg">`;
+  s += `<text x="60" y="26" class="${o.warn ? "t-warn" : "t-accent"}">${o.top}</text>`;
+  s += `<text x="${ax}" y="50" font-size="12" class="t-muted">half A</text>`;
+  s += `<text x="${bx}" y="50" font-size="12" class="t-muted">half B</text>`;
+  s += buf(ax, o.a, o.aCls || "b-accent") + buf(bx, o.b, o.bCls || "b-accent");
+  if (o.dma) {
+    const base = o.dma === "a" ? ax : bx;
+    const ex = Math.min(base + 2 + 246 * (o.dma === "a" ? o.a : o.b), base + 240);
+    s += `<path d="M ${ex - 7},45 L ${ex + 7},45 L ${ex},56 z" fill="var(--accent)"/>`;
+    s += `<text x="${ex + 12}" y="42" font-size="12" class="t-accent">DMA</text>`;
+  }
+  if (o.cpuTxt) {
+    const cx = o.cpuAt === "a" ? ax + 125 : o.cpuAt === "b" ? bx + 125 : 340;
+    if (o.cpuAt === "a" || o.cpuAt === "b")
+      s += `<path d="M ${cx - 7},120 L ${cx + 7},120 L ${cx},108 z" fill="${o.warn ? "var(--warn)" : "var(--accent)"}"/>`;
+    s += `<text x="${cx}" y="140" text-anchor="middle" class="${o.warn ? "t-warn" : "t-accent"}">${o.cpuTxt}</text>`;
+  }
+  s += `<text x="340" y="164" text-anchor="middle" font-size="12" class="t-muted">circular DMA — one buffer, two halves, two interrupts</text></svg>`;
+  return s;
+}
+
 const ANIMATIONS = {
   stackheap: {
     interval: 2600,
@@ -2591,6 +2719,7 @@ function mountAnimations() {
     const anim = ANIMATIONS[box.dataset.anim];
     if (!anim) return;
     const pre = el("pre", "");
+    const svgHost = el("div", "anim-svg svgfig");
     const note = el("p", "anim-note");
     const controls = el("div", "anim-controls");
     const resetBtn = el("button", "", "⏮ Reset");
@@ -2599,13 +2728,22 @@ function mountAnimations() {
     const counter = el("span", "anim-counter");
     [resetBtn, playBtn, stepBtn].forEach(b => { b.type = "button"; controls.appendChild(b); });
     controls.appendChild(counter);
-    box.appendChild(pre); box.appendChild(note); box.appendChild(controls);
+    box.appendChild(pre); box.appendChild(svgHost); box.appendChild(note); box.appendChild(controls);
 
     let i = 0, timer = null;
     function show(k) {
       i = ((k % anim.frames.length) + anim.frames.length) % anim.frames.length;
-      pre.textContent = anim.frames[i].t;
-      note.textContent = anim.frames[i].n;
+      const f = anim.frames[i];
+      if (f.svg) {                      // SVG frame — crisp, theme-aware
+        svgHost.innerHTML = f.svg;
+        svgHost.style.display = "block";
+        pre.style.display = "none";
+      } else {                          // plain text frame
+        pre.textContent = f.t;
+        pre.style.display = "block";
+        svgHost.style.display = "none";
+      }
+      note.textContent = f.n;
       counter.textContent = `step ${i + 1} / ${anim.frames.length}`;
     }
     function stop() {
@@ -2627,7 +2765,72 @@ function mountAnimations() {
     if (!reduceMotion) play(); else stop();
   });
 }
+
+// Upgrade the stack/heap and DMA animations to SVG frames (notes stay as-is)
+(function upgradeToSvgFrames() {
+  const A = "b-accent", P = "b-plain", W = "b-warn", M = "t-muted", T = "t-warn";
+  const stackLayouts = [
+    [[[26, P, "empty stack", M], [150, P, "free RAM", M], [24, P, "heap: empty", M], [40, A, ".data / .bss (globals)"]], 0],
+    [[[30, A, "main() frame"], [146, P, "free RAM", M], [24, P, "heap: empty", M], [40, A, ".data / .bss (globals)"]], 1],
+    [[[30, A, "main() frame"], [30, A, "parse() frame — buf[64]"], [116, P, "free RAM", M], [24, P, "heap: empty", M], [40, A, ".data / .bss (globals)"]], 2],
+    [[[30, A, "main() frame"], [30, A, "parse() frame"], [30, A, "checksum() frame"], [86, P, "free RAM", M], [24, P, "heap: empty", M], [40, A, ".data / .bss (globals)"]], 3],
+    [[[30, A, "main() frame"], [30, A, "parse() frame"], [30, P, "stale checksum() bytes — not erased", M], [86, P, "free RAM", M], [24, P, "heap: empty", M], [40, A, ".data / .bss (globals)"]], 2],
+    [[[30, A, "main() frame"], [30, A, "parse() frame"], [112, P, "free RAM", M], [28, A, "heap: A = malloc(64)"], [40, A, ".data / .bss (globals)"]], 2],
+    [[[30, A, "main() frame"], [30, A, "parse() frame"], [86, P, "free RAM", M], [28, A, "heap: B = malloc(128)"], [26, P, "(hole — A was freed)", M], [40, A, ".data / .bss (globals)"]], 2],
+    [[[30, A, "main() frame"], [30, A, "parse() frame"], [32, A, "log_packet() frame"], [42, W, "char line[2048] — STACK OVERFLOW", T], [28, W, "heap: B ← CORRUPTED", T], [26, P, "(hole)", M], [40, A, ".data / .bss (globals)"]], 4],
+    [[[58, A, "stack — bounded, measured"], [26, W, "MPU guard — any write ⇒ HardFault", T], [80, P, "free RAM", M], [36, A, "static pools (no malloc)"], [40, A, ".data / .bss (globals)"]], 1]
+  ];
+  stackLayouts.forEach((L, i) => {
+    if (ANIMATIONS.stackheap.frames[i]) ANIMATIONS.stackheap.frames[i].svg = memSVG(L[0], L[1]);
+  });
+  const dmaShots = [
+    { a: 0.42, b: 0, dma: "a", top: "DMA fills half A — the CPU is not involved", cpuTxt: "CPU: idle / other work / asleep", cpuAt: "mid" },
+    { a: 1, b: 0.05, dma: "b", top: "half-transfer IRQ fires — DMA rolls on into B", cpuTxt: "IRQ → CPU: process half A now", cpuAt: "a" },
+    { a: 1, b: 0.62, dma: "b", top: "the overlap: two workers, zero per-byte interrupts", cpuTxt: "CPU reading A while DMA writes B", cpuAt: "a" },
+    { a: 0.15, b: 1, dma: "a", top: "transfer-complete IRQ — DMA wrapped back to half A", cpuTxt: "CPU reading B", cpuAt: "b" },
+    { a: 1, b: 1, aCls: "b-warn", bCls: "b-warn", dma: "a", warn: true, top: "CPU too slow — the DMA laps it", cpuTxt: "unread data OVERWRITTEN, silently", cpuAt: "a" }
+  ];
+  dmaShots.forEach((o, i) => {
+    if (ANIMATIONS.dma.frames[i]) ANIMATIONS.dma.frames[i].svg = dmaSVG(o);
+  });
+})();
+
 mountAnimations();
+
+// Draw the sampling-vs-aliasing plot with real sine curves
+(function drawAlias() {
+  const svg = document.getElementById("alias-svg");
+  if (!svg) return;
+  const X0 = 60, X1 = 700, Y = 140, AMP = 74, T = 0.0008;   // 0.8 ms window
+  const pts = (f, sign) => {
+    let s = "";
+    for (let i = 0; i <= 320; i++) {
+      const t = T * i / 320;
+      const x = X0 + (X1 - X0) * i / 320;
+      const y = Y - sign * AMP * Math.sin(2 * Math.PI * f * t);
+      s += (i ? " " : "") + x.toFixed(1) + "," + y.toFixed(1);
+    }
+    return s;
+  };
+  let dots = "";
+  for (let n = 0; n <= 8; n++) {                             // fs = 10 kHz samples
+    const t = n * 0.0001;
+    const x = X0 + (X1 - X0) * (t / T);
+    const y = Y - AMP * Math.sin(2 * Math.PI * 7000 * t);
+    dots += `<line x1="${x.toFixed(1)}" y1="${(Y + AMP + 14).toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="ln-dash"/>`;
+    dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" class="dot"/>`;
+  }
+  svg.innerHTML =
+    `<polyline class="wave" points="${pts(7000, 1)}"/>` +
+    `<polyline class="wave2" points="${pts(3000, -1)}"/>` +
+    dots +
+    `<line x1="${X0}" y1="${Y + AMP + 14}" x2="${X1}" y2="${Y + AMP + 14}" class="ln"/>` +
+    `<text x="${X0}" y="26" class="t-accent">7 kHz input (solid)</text>` +
+    `<text x="${X0 + 190}" y="26" class="t-warn">3 kHz alias (dashed) — passes through the SAME samples</text>` +
+    `<text x="${X0}" y="${Y + AMP + 40}" class="t-muted">● samples every 0.1 ms (fs = 10 kHz, Nyquist limit = 5 kHz)</text>` +
+    `<text x="${X0}" y="${Y + AMP + 58}" class="t-muted">after sampling the two are indistinguishable: alias = |10 − 7| = 3 kHz</text>` +
+    `<text x="${X1}" y="${Y + AMP + 8}" text-anchor="end" class="t-muted" font-size="12">t</text>`;
+})();
 </script>
 </body>
 </html>
