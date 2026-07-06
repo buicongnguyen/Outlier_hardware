@@ -287,7 +287,7 @@ WRONG: drop samples first
         <text x="456" y="63" class="t-muted">pole &#8212; root of A(z)</text>
         <circle cx="440" cy="84" r="6" class="ln-accent"/>
         <text x="456" y="89" class="t-muted">zero &#8212; root of B(z)</text>
-        <text x="430" y="126" class="t-accent">STABLE = every pole strictly inside |z| = 1</text>
+        <text x="430" y="126" class="t-accent" font-size="12.5">STABLE = every pole strictly inside |z| = 1</text>
         <text x="430" y="146" class="t-muted">(impulse response decays)</text>
         <text x="430" y="168" class="t-muted">angle around the circle = frequency:</text>
         <text x="430" y="186" class="t-muted t-mono">0 = DC, &#960; = Nyquist</text>
@@ -297,7 +297,7 @@ WRONG: drop samples first
         <text x="430" y="272" class="t-muted">fine in double precision, oscillates in</text>
         <text x="430" y="290" class="t-muted">16-bit fixed point.</text>
         <path d="M 428 214 C 380 212, 356 210, 328 208" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#pz-mw)"/>
-        <text x="430" y="318" class="t-muted">pole ON the circle &#8594; oscillator; outside &#8594; blows up</text>
+        <text x="430" y="318" class="t-muted" font-size="11.5">pole ON the circle &#8594; oscillator; outside &#8594; blows up</text>
       </svg>
 
       <div class="link-list">
@@ -422,7 +422,7 @@ so past "enough to hide latency" extra occupancy can make kernels SLOWER.
 Occupancy is a means, not a score — measure, don't maximize.</pre>
 
       <p class="diagram-title">Roofline — which wall is your kernel hitting?</p>
-      <svg class="svg-diagram svgfig" viewBox="0 0 760 320" role="img" aria-label="Roofline plot: memory-bandwidth slope meets the flat compute roof at the ridge; SAXPY sits on the memory roof, GEMM on the compute roof">
+      <svg class="svg-diagram svgfig" viewBox="0 0 760 336" role="img" aria-label="Roofline plot: memory-bandwidth slope meets the flat compute roof at the ridge; SAXPY sits on the memory roof, GEMM on the compute roof">
         <polygon points="80,255 350,90 700,90 700,260 80,260" fill="var(--accent-soft)" opacity="0.45"/>
         <line class="ln" x1="80" y1="40" x2="80" y2="260"/>
         <line class="ln" x1="80" y1="260" x2="700" y2="260"/>
@@ -432,8 +432,8 @@ Occupancy is a means, not a score — measure, don't maximize.</pre>
         <text x="358" y="250" class="t-muted" font-size="11.5">ridge: AI = peak FLOP/s &#247; peak bytes/s</text>
         <text x="470" y="78" class="t-accent">compute roof (peak GFLOP/s)</text>
         <text x="150" y="195" class="t-accent" transform="rotate(-31 150 195)">memory roof (peak GB/s)</text>
-        <line x1="170" y1="255" x2="440" y2="90" stroke="var(--warn)" stroke-width="1.6" stroke-dasharray="6 5" fill="none"/>
-        <text x="305" y="212" class="t-warn" font-size="11.5" transform="rotate(-31 305 212)">PCIe roof &#8212; stay on the device</text>
+        <line x1="280" y1="188" x2="395" y2="118" stroke="var(--warn)" stroke-width="1.6" stroke-dasharray="6 5" fill="none"/>
+        <text x="403" y="122" class="t-warn" font-size="11.5">PCIe roof</text>
         <circle cx="150" cy="212" r="5.5" fill="var(--warn)"/>
         <text x="162" y="206" class="t-warn">SAXPY &#8212; 0.17 FLOP/byte</text>
         <text x="162" y="224" class="t-muted" font-size="11.5">memory-bound: only fewer bytes help</text>
@@ -443,7 +443,8 @@ Occupancy is a means, not a score — measure, don't maximize.</pre>
         <text x="532" y="112" class="t-accent">GEMM (tiled) &#8212; compute-bound</text>
         <text x="390" y="288" text-anchor="middle" class="t-muted">arithmetic intensity &#8212; FLOP per byte moved (log)</text>
         <text x="30" y="150" class="t-muted" transform="rotate(-90 30 150)" text-anchor="middle">attainable GFLOP/s (log)</text>
-        <text x="80" y="312" class="t-muted" font-size="11.5">left of the ridge only moving fewer bytes helps (fuse kernels, tile, recompute); right of it, optimize the math.</text>
+        <text x="80" y="312" class="t-muted" font-size="11.5">left of the ridge only moving fewer bytes helps (fuse, tile, recompute); right of it, optimize the math.</text>
+        <text x="80" y="328" class="t-muted" font-size="11.5">PCIe sits far below both roofs &#8212; copy once, keep the whole pipeline on the device.</text>
       </svg>
 
       <h3 class="sub">CUDA in practice — running real work (FFT example)</h3>
