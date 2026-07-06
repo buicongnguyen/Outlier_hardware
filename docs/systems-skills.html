@@ -259,22 +259,45 @@ WRONG: drop samples first
   b ────●─────────●──── B = a − W·b      N = 1024:  ~5k vs ~1M  (≈200× less)</pre>
 
       <p class="diagram-title">Pole-zero map — reading stability off the z-plane</p>
-      <pre class="diagram">H(z) = B(z)/A(z)      ○ = zero (root of B)      × = pole (root of A)
-
-                 Im │
-              ..────┼────..     unit circle |z| = 1
-            ╱       │      ╲    angle = frequency:  0 = DC,  π = Nyquist
-          │    ○    │   ×   │
-   ───────┼────────┼───────┼──── Re
-          │        │    ×──┼───── pole NEAR the circle: sharp resonance,
-            ╲      │      ╱      long ringing, high gain — and quantizing
-              ``────┼────``       the coefficients can nudge it OUTSIDE
-                   │                → the filter that was fine in double
-                                      precision oscillates in 16-bit fixed point
-
-STABLE  = every pole strictly INSIDE the circle (impulse response decays)
-pole ON the circle  → oscillator (marginal);  outside → output blows up
-zeros may sit anywhere — a zero ON the circle is a perfect notch there</pre>
+      <svg class="svg-diagram svgfig" viewBox="0 0 760 340" role="img" aria-label="z-plane pole-zero map: poles inside the unit circle mean stable, a pole near the circle risks fixed-point instability">
+        <defs>
+          <marker id="pz-m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--muted)"/></marker>
+          <marker id="pz-mw" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--warn)"/></marker>
+        </defs>
+        <line class="ln-dash" x1="55" y1="170" x2="385" y2="170"/>
+        <line class="ln-dash" x1="210" y1="35" x2="210" y2="305"/>
+        <text x="374" y="162" class="t-muted">Re</text>
+        <text x="219" y="47" class="t-muted">Im</text>
+        <circle cx="210" cy="170" r="115" class="ln"/>
+        <circle cx="325" cy="170" r="3" class="dot"/>
+        <text x="331" y="190" class="t-muted">z = 1 (DC)</text>
+        <circle cx="95" cy="170" r="3" class="dot"/>
+        <text x="100" y="150" text-anchor="end" class="t-muted">z = &#8722;1 (Nyquist)</text>
+        <line class="ln-accent" x1="248" y1="103" x2="262" y2="117"/><line class="ln-accent" x1="262" y1="103" x2="248" y2="117"/>
+        <line class="ln-accent" x1="248" y1="223" x2="262" y2="237"/><line class="ln-accent" x1="262" y1="223" x2="248" y2="237"/>
+        <text x="268" y="234" class="t-muted" font-size="11">conjugate pair</text>
+        <line class="ln-warn" x1="305" y1="198" x2="319" y2="212"/><line class="ln-warn" x1="319" y1="198" x2="305" y2="212"/>
+        <circle cx="160" cy="120" r="7" class="ln-accent"/>
+        <circle cx="129" cy="89" r="7" class="ln-accent"/>
+        <text x="20" y="46" class="t-muted" font-size="11.5">zero ON the circle =</text>
+        <text x="20" y="62" class="t-muted" font-size="11.5">perfect notch there</text>
+        <path class="ln-dash" d="M 108 66 C 116 72, 120 76, 124 81" marker-end="url(#pz-m)"/>
+        <line class="ln-accent" x1="434" y1="52" x2="446" y2="64"/><line class="ln-accent" x1="446" y1="52" x2="434" y2="64"/>
+        <text x="456" y="63" class="t-muted">pole &#8212; root of A(z)</text>
+        <circle cx="440" cy="84" r="6" class="ln-accent"/>
+        <text x="456" y="89" class="t-muted">zero &#8212; root of B(z)</text>
+        <text x="430" y="126" class="t-accent">STABLE = every pole strictly inside |z| = 1</text>
+        <text x="430" y="146" class="t-muted">(impulse response decays)</text>
+        <text x="430" y="168" class="t-muted">angle around the circle = frequency:</text>
+        <text x="430" y="186" class="t-muted t-mono">0 = DC, &#960; = Nyquist</text>
+        <text x="430" y="218" class="t-warn">pole NEAR the circle:</text>
+        <text x="430" y="236" class="t-muted">sharp resonance, long ringing, high gain &#8212;</text>
+        <text x="430" y="254" class="t-muted">coefficient rounding can push it OUTSIDE:</text>
+        <text x="430" y="272" class="t-muted">fine in double precision, oscillates in</text>
+        <text x="430" y="290" class="t-muted">16-bit fixed point.</text>
+        <path d="M 428 214 C 380 212, 356 210, 328 208" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#pz-mw)"/>
+        <text x="430" y="318" class="t-muted">pole ON the circle &#8594; oscillator; outside &#8594; blows up</text>
+      </svg>
 
       <div class="link-list">
         <a href="https://www.dspguide.com/" target="_blank" rel="noopener">The Scientist &amp; Engineer's Guide to DSP (free book)</a>
@@ -398,22 +421,29 @@ so past "enough to hide latency" extra occupancy can make kernels SLOWER.
 Occupancy is a means, not a score — measure, don't maximize.</pre>
 
       <p class="diagram-title">Roofline — which wall is your kernel hitting?</p>
-      <pre class="diagram">attainable                              compute roof (peak FLOP/s)
-GFLOP/s   │                 ┌─────────────────────────────
-(log)     │                ╱: ridge: AI = peak FLOPs / peak bytes/s
-          │  memory-      ╱ :
-          │  bound       ╱  :    ▲ GEMM, tiled — reuses each element
-          │  roof:      ╱   :      O(N) times → compute-bound
-          │  slope =   ╱ ▲ FFT — O(log N) reuse, near the ridge
-          │  peak     ╱
-          │  bytes/s ╱▲ SAXPY — 2 FLOPs / 12 bytes = 0.17 AI:
-          │         ╱   pinned to the memory roof
-          └────────┴────:───────────▶  arithmetic intensity (FLOPs/byte, log)
-
-left of the ridge: math tuning is pointless — only moving fewer bytes helps
-(fuse kernels, tile into shared memory, recompute instead of reload).
-right of it: optimize the arithmetic.  PCIe sits far BELOW both roofs —
-which is why the pipeline stays on the device.</pre>
+      <svg class="svg-diagram svgfig" viewBox="0 0 760 320" role="img" aria-label="Roofline plot: memory-bandwidth slope meets the flat compute roof at the ridge; SAXPY sits on the memory roof, GEMM on the compute roof">
+        <polygon points="80,255 350,90 700,90 700,260 80,260" fill="var(--accent-soft)" opacity="0.45"/>
+        <line class="ln" x1="80" y1="40" x2="80" y2="260"/>
+        <line class="ln" x1="80" y1="260" x2="700" y2="260"/>
+        <line class="ln-accent" x1="80" y1="255" x2="350" y2="90" stroke-width="2.4"/>
+        <line class="ln-accent" x1="350" y1="90" x2="700" y2="90" stroke-width="2.4"/>
+        <line class="ln-dash" x1="350" y1="90" x2="350" y2="260"/>
+        <text x="358" y="250" class="t-muted" font-size="11.5">ridge: AI = peak FLOP/s &#247; peak bytes/s</text>
+        <text x="470" y="78" class="t-accent">compute roof (peak GFLOP/s)</text>
+        <text x="150" y="195" class="t-accent" transform="rotate(-31 150 195)">memory roof (peak GB/s)</text>
+        <line x1="170" y1="255" x2="440" y2="90" stroke="var(--warn)" stroke-width="1.6" stroke-dasharray="6 5" fill="none"/>
+        <text x="305" y="212" class="t-warn" font-size="11.5" transform="rotate(-31 305 212)">PCIe roof &#8212; stay on the device</text>
+        <circle cx="150" cy="212" r="5.5" fill="var(--warn)"/>
+        <text x="162" y="206" class="t-warn">SAXPY &#8212; 0.17 FLOP/byte</text>
+        <text x="162" y="224" class="t-muted" font-size="11.5">memory-bound: only fewer bytes help</text>
+        <circle cx="300" cy="121" r="5.5" class="dot"/>
+        <text x="290" y="115" text-anchor="end" class="t-muted">FFT &#8212; O(log N) reuse</text>
+        <circle cx="520" cy="90" r="5.5" fill="var(--accent-strong)"/>
+        <text x="532" y="112" class="t-accent">GEMM (tiled) &#8212; compute-bound</text>
+        <text x="390" y="288" text-anchor="middle" class="t-muted">arithmetic intensity &#8212; FLOP per byte moved (log)</text>
+        <text x="30" y="150" class="t-muted" transform="rotate(-90 30 150)" text-anchor="middle">attainable GFLOP/s (log)</text>
+        <text x="80" y="312" class="t-muted" font-size="11.5">left of the ridge only moving fewer bytes helps (fuse kernels, tile, recompute); right of it, optimize the math.</text>
+      </svg>
 
       <h3 class="sub">CUDA in practice — running real work (FFT example)</h3>
       <div class="term-grid">
