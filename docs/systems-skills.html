@@ -31,6 +31,7 @@
     .options button:hover:enabled { border-color:var(--accent); background:var(--accent-soft); }
     .options button:disabled { cursor:default; opacity:0.85; }
     .options button.correct { border-color:var(--accent-strong); background:var(--accent-soft); color:var(--accent-strong); font-weight:700; opacity:1; }
+    .options button.correct.missed { border-style:dashed; border-width:2px; }
     .options button.incorrect { border-color:var(--warn); background:var(--warn-soft); color:var(--warn); font-weight:700; opacity:1; }
     .explain { display:none; margin:10px 0 0; padding:10px 12px; border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 6px 6px 0; color:var(--text); }
     .explain.show { display:block; }
@@ -272,7 +273,7 @@ WRONG: drop samples first
         <circle cx="325" cy="170" r="3" class="dot"/>
         <text x="331" y="190" class="t-muted">z = 1 (DC)</text>
         <circle cx="95" cy="170" r="3" class="dot"/>
-        <text x="100" y="150" text-anchor="end" class="t-muted">z = &#8722;1 (Nyquist)</text>
+        <text x="100" y="150" text-anchor="end" class="t-muted" font-size="11.5">z = &#8722;1 (Nyquist)</text>
         <line class="ln-accent" x1="248" y1="103" x2="262" y2="117"/><line class="ln-accent" x1="262" y1="103" x2="248" y2="117"/>
         <line class="ln-accent" x1="248" y1="223" x2="262" y2="237"/><line class="ln-accent" x1="262" y1="223" x2="248" y2="237"/>
         <text x="268" y="234" class="t-muted" font-size="11">conjugate pair</text>
@@ -2338,6 +2339,11 @@ function renderMulti(container, item, number, sectionKey) {
   const check = el("button", "check-btn", "Check answer");
   check.type = "button";
   check.addEventListener("click", () => {
+    if (!buttons.some(b => b.classList.contains("selected"))) {
+      check.textContent = "Select at least one option first";
+      setTimeout(() => { check.textContent = "Check answer"; }, 1600);
+      return;                                   // don't grade an empty selection
+    }
     state[sectionKey].answered += 1;
     let ok = true;
     for (const b of buttons) {
@@ -2346,12 +2352,13 @@ function renderMulti(container, item, number, sectionKey) {
       if (good !== picked) ok = false;
       b.disabled = true;
       if (good) b.classList.add("correct");
-      else if (picked) b.classList.add("incorrect");
+      if (good && !picked) b.classList.add("missed");   // right answer you didn't pick
+      else if (!good && picked) b.classList.add("incorrect");
     }
     if (ok) state[sectionKey].correct += 1;
     check.disabled = true;
     const verdict = el("span", "verdict " + (ok ? "good" : "bad"),
-      ok ? "Correct — exact set matched. " : "Incorrect — the full correct set is highlighted green. ");
+      ok ? "Correct — exact set matched. " : "Incorrect — the full correct set is green (dashed border = correct options you missed). ");
     explain.insertBefore(verdict, explain.firstChild);
     explain.classList.add("show");
     updateScore();
@@ -2367,6 +2374,7 @@ function renderOrder(container, item, number, sectionKey) {
   const card = el("article", "quiz-card");
   const title = el("p", "q", `Q${number}. ${item.q}`);
   title.appendChild(el("span", "qtype-tag", "click the steps in order"));
+  if (item.hard) title.appendChild(el("span", "qtype-tag", "senior"));
   card.appendChild(title);
   const optionsBox = el("div", "options");
   const explain = el("div", "explain");
